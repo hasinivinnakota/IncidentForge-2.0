@@ -75,9 +75,9 @@ import {
   type ResponseAction,
   type DatasetAsset,
   type DatasetActivity,
-  type DatasetOverview,
   type DatasetSecurityScore,
   type DatasetFinding,
+  type DatasetSecurityAssessment,
 } from "@/lib/api"
 import {
   IncidentStatusPanel,
@@ -90,6 +90,41 @@ import {
 // ---------------------------------------------------------------------------
 // Helpers & Types
 // ---------------------------------------------------------------------------
+
+export interface DatasetOverview {
+  dataset_id: string
+  asset?: DatasetAsset
+  assessment?: DatasetSecurityAssessment
+  activities: DatasetActivity[]
+  alerts: Alert[]
+  correlations: Correlation[]
+  incidents: Incident[]
+  risk_assessments: RiskAssessment[]
+  threat_intel: ThreatIntelResult[]
+  cases: Case[]
+  response_records: ResponseAction[]
+}
+
+async function fetchDatasetOverview(datasetId: string): Promise<DatasetOverview> {
+  if (typeof (datasetsApi as any).getDatasetOverview === "function") {
+    return await (datasetsApi as any).getDatasetOverview(datasetId)
+  }
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") || "http://127.0.0.1:8000"
+  const res = await fetch(`${baseUrl}/api/v1/data-assets/${encodeURIComponent(datasetId)}/overview`, {
+    headers: { Accept: "application/json" },
+  })
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`
+    try {
+      const err = await res.json()
+      msg = err.detail || JSON.stringify(err)
+    } catch {
+      // ignore
+    }
+    throw new Error(msg)
+  }
+  return (await res.json()) as DatasetOverview
+}
 
 export type SeverityBadgeLevel = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"
 
@@ -168,7 +203,7 @@ function formatTime(isoString?: string | null): string {
 // ---------------------------------------------------------------------------
 
 const navGroups = [
-  { label: "OPERATIONS", items: [["Overview", LayoutDashboard], ["Alerts", Bell], ["Correlations", GitBranch], ["Dataset Assets", Database], ["Dataset Security", Shield]] },
+  { label: "OPERATIONS", items: [["Overview", LayoutDashboard], ["Dataset Security", Shield], ["Dataset Assets", Database], ["Alerts", Bell], ["Correlations", GitBranch]] },
   { label: "INVESTIGATION", items: [["Incidents", ShieldAlert], ["Cases", BriefcaseBusiness], ["AI Investigator", Bot], ["Threat Intelligence", Crosshair]] },
   { label: "RESPONSE", items: [["Response", Siren]] },
   { label: "SYSTEM", items: [["System", Settings]] },
@@ -306,28 +341,7 @@ function Topbar({
       </div>
       <div className="flex items-center gap-2">
         <Search size={13} className="text-slate-500" />
-        {page === "Overview" && (
-          <label className="cursor-pointer ml-4 flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400">
-            <Upload size={13} />
-            + Upload Dataset
-            <input
-              type="file"
-              className="hidden"
-              accept=".csv,.json,.jsonl,.parquet"
-              onChange={(e) => {
-                const file = e.target.files?.[0] ?? null
-                if (file) {
-                  if (onUpload) {
-                    onUpload(file)
-                  } else {
-                    window.dispatchEvent(new CustomEvent('dataset-upload', { detail: file }))
-                  }
-                }
-                e.target.value = ""
-              }}
-            />
-          </label>
-        )}
+
         <button
           onClick={onCommand}
           className="hidden h-8 items-center justify-center gap-12 rounded-none border border-white/[0.08] bg-white/[0.025] px-3 text-xs text-slate-500 transition hover:border-orange-400/30 hover:text-slate-300 md:inline-flex"
@@ -374,17 +388,36 @@ function ActivityChart({
 }) {
   const [period, setPeriod] = useState("24H")
 
-  // Derive 12 time buckets across 24h from actual item timestamps
+  // Derive time buckets from the actual dataset's response timestamps
   const trendData = useMemo(() => {
-    const now = new Date()
-    const bucketHours = 2
+    const allTimes: number[] = []
+    alerts.forEach((a) => {
+      const t = new Date(a.timestamp).getTime()
+      if (!isNaN(t)) allTimes.push(t)
+    })
+    incidents.forEach((inc) => {
+      const t = new Date(inc.created_at || inc.first_seen || "").getTime()
+      if (!isNaN(t)) allTimes.push(t)
+    })
+    correlations.forEach((c) => {
+      const t = new Date(c.first_seen || "").getTime()
+      if (!isNaN(t)) allTimes.push(t)
+    })
+
+    const maxTime = allTimes.length > 0 ? Math.max(...allTimes) : Date.now()
+    const minTime = allTimes.length > 0 ? Math.min(...allTimes) : maxTime - 24 * 3600 * 1000
+    const timeSpan = Math.max(maxTime - minTime, 3600 * 1000)
+    const bucketDuration = timeSpan / 12
+
     const buckets = Array.from({ length: 12 }, (_, i) => {
-      const bucketStart = new Date(now.getTime() - (11 - i) * bucketHours * 3600 * 1000)
-      const hourStr = bucketStart.getHours().toString().padStart(2, "0") + ":00"
+      const bucketStart = minTime + i * bucketDuration
+      const bucketEnd = bucketStart + bucketDuration
+      const d = new Date(bucketStart)
+      const hourStr = d.getHours().toString().padStart(2, "0") + ":00"
       return {
         time: hourStr,
-        startTime: bucketStart.getTime(),
-        endTime: bucketStart.getTime() + bucketHours * 3600 * 1000,
+        startTime: bucketStart,
+        endTime: bucketEnd,
         alerts: 0,
         incidents: 0,
         correlations: 0,
@@ -394,7 +427,7 @@ function ActivityChart({
     alerts.forEach((a) => {
       const t = new Date(a.timestamp).getTime()
       if (!isNaN(t)) {
-        const bucket = buckets.find((b) => t >= b.startTime && t < b.endTime)
+        const bucket = buckets.find((b) => t >= b.startTime && t <= b.endTime) || buckets[buckets.length - 1]
         if (bucket) bucket.alerts += 1
       }
     })
@@ -402,7 +435,7 @@ function ActivityChart({
     incidents.forEach((inc) => {
       const t = new Date(inc.created_at || inc.first_seen || "").getTime()
       if (!isNaN(t)) {
-        const bucket = buckets.find((b) => t >= b.startTime && t < b.endTime)
+        const bucket = buckets.find((b) => t >= b.startTime && t <= b.endTime) || buckets[buckets.length - 1]
         if (bucket) bucket.incidents += 1
       }
     })
@@ -410,7 +443,7 @@ function ActivityChart({
     correlations.forEach((c) => {
       const t = new Date(c.first_seen || "").getTime()
       if (!isNaN(t)) {
-        const bucket = buckets.find((b) => t >= b.startTime && t < b.endTime)
+        const bucket = buckets.find((b) => t >= b.startTime && t <= b.endTime) || buckets[buckets.length - 1]
         if (bucket) bucket.correlations += 1
       }
     })
@@ -1547,15 +1580,33 @@ function ProductFlowPipeline({
     {
       id: "detection",
       step: "03",
-      label: "Detection / Correlation",
+      label: "Detection/Correlation",
       status: hasDataset ? (alertCount > 0 ? "FLAGGED" : "NOMINAL") : "STANDBY",
       subtext: hasDataset ? `${alertCount} alerts · ${correlationCount} chains` : "Rule Matches",
       detail: hasDataset ? (correlationCount > 0 ? "Attack chains correlated" : "Clean baseline") : "Detection engine",
       icon: Crosshair,
     },
     {
-      id: "investigation",
+      id: "hindsight",
       step: "04",
+      label: "Hindsight Recall",
+      status: hasDataset ? "V2.0 STANDBY" : "STANDBY",
+      subtext: hasDataset ? "Memory Entity Resolution" : "Memory Engine",
+      detail: hasDataset ? "Ready for memory engine" : "Cross-investigation recall",
+      icon: Bot,
+    },
+    {
+      id: "historical",
+      step: "05",
+      label: "Historical Patterns",
+      status: hasDataset ? "V2.0 STANDBY" : "STANDBY",
+      subtext: hasDataset ? "Prior Attack Graph Matching" : "Pattern Engine",
+      detail: hasDataset ? "Ready for temporal recall" : "Temporal graph matching",
+      icon: Clock3,
+    },
+    {
+      id: "investigation",
+      step: "06",
       label: "SOC Investigation",
       status: incidentCount > 0 ? "ACTIVE" : (hasDataset ? "CLEAN" : "STANDBY"),
       subtext: hasDataset ? `${incidentCount} incidents · ${caseCount} cases` : "Analyst Queue",
@@ -1564,7 +1615,7 @@ function ProductFlowPipeline({
     },
     {
       id: "response",
-      step: "05",
+      step: "07",
       label: "Incident Response",
       status: responseCount > 0 ? "ACTIONABLE" : (hasDataset ? "READY" : "STANDBY"),
       subtext: hasDataset ? `${responseCount} mitigations tracked` : "State Machine",
@@ -1586,7 +1637,7 @@ function ProductFlowPipeline({
         </div>
       }
     >
-      <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
         {stages.map((stage) => {
           const Icon = stage.icon
           const isDone = stage.status === "COMPLETED" || stage.status === "FLAGGED" || stage.status === "ACTIVE"
@@ -1687,8 +1738,8 @@ function DatasetMetricCards({
     {
       label: "Dataset Incidents",
       value: String(incidentsCount),
-      delta: `${criticalIncidentsCount} critical (≥12)`,
-      detail: `Posture health: ${securityScore?.score ?? "—"}/100 (${securityScore?.risk_level || "UNKNOWN"})`,
+      delta: criticalIncidentsCount > 0 ? `${criticalIncidentsCount} critical` : (incidentsCount > 0 ? `${incidentsCount} active` : "nominal"),
+      detail: `Posture score: ${securityScore?.score ?? "—"}/100 (${securityScore?.risk_level || "UNKNOWN"})`,
       icon: ShieldAlert,
     },
   ]
@@ -2033,26 +2084,7 @@ function ActiveDatasetBanner({
             </select>
           )}
 
-          <label className="cursor-pointer flex items-center gap-1.5 rounded-lg bg-orange-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400">
-            <Upload size={13} />
-            <span>+ Upload Dataset</span>
-            <input
-              type="file"
-              className="hidden"
-              accept=".csv,.json,.jsonl,.parquet"
-              onChange={(e) => {
-                const file = e.target.files?.[0] ?? null
-                if (file) {
-                  if (onUpload) {
-                    onUpload(file)
-                  } else {
-                    window.dispatchEvent(new CustomEvent("dataset-upload", { detail: file }))
-                  }
-                }
-                e.target.value = ""
-              }}
-            />
-          </label>
+
 
           <button
             onClick={onViewDeepSecurity}
@@ -2075,38 +2107,21 @@ function EmptyDatasetOverviewHero({
   datasets = [],
   onDatasetSelect,
   onUpload,
+  error,
+  isUploading = false,
 }: {
   datasets?: DatasetAsset[]
   onDatasetSelect: (asset: DatasetAsset) => void
   onUpload?: (file: File) => void
+  error?: string | null
+  isUploading?: boolean
 }) {
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-2xl border border-orange-500/25 bg-gradient-to-b from-[#191512] via-[#121214] to-[#0d0e10] p-8 text-center shadow-2xl">
-        <div className="flex justify-end mb-2">
-          <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400">
-            <Upload size={14} />
-            <span>+ Upload Dataset</span>
-            <input
-              type="file"
-              className="hidden"
-              accept=".csv,.json,.jsonl,.parquet"
-              onChange={(e) => {
-                const file = e.target.files?.[0] ?? null
-                if (file) {
-                  if (onUpload) {
-                    onUpload(file)
-                  } else {
-                    window.dispatchEvent(new CustomEvent("dataset-upload", { detail: file }))
-                  }
-                }
-                e.target.value = ""
-              }}
-            />
-          </label>
-        </div>
+
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-400 border border-orange-500/25">
-          <Upload size={32} />
+          {isUploading ? <RefreshCw size={32} className="animate-spin text-orange-400" /> : <Upload size={32} />}
         </div>
         <h2 className="mt-4 text-2xl font-bold tracking-tight text-white">
           Upload Dataset for IncidentForge 2.0 Investigation
@@ -2115,12 +2130,36 @@ function EmptyDatasetOverviewHero({
           The IncidentForge 2.0 overview is driven directly by dataset analysis. Upload your telemetry or structured asset (CSV, JSON, JSONL, Parquet) to profile schema risk, trigger detection rules, and run autonomous SOC investigations.
         </p>
 
+        {error && (
+          <div className="mx-auto mt-4 max-w-xl rounded-lg border border-red-500/40 bg-red-950/40 p-3.5 text-left text-xs text-red-200 shadow-lg">
+            <div className="flex items-center gap-2 font-semibold text-red-400">
+              <AlertTriangle size={15} />
+              <span>Dataset Ingestion / Loading Failed</span>
+            </div>
+            <p className="mt-1 text-[11px] text-red-300/90 font-mono break-words">{error}</p>
+          </div>
+        )}
+
         <div className="mt-6 flex justify-center">
-          <label className="cursor-pointer flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-orange-500/25 transition hover:bg-orange-400">
-            <Upload size={16} />
-            <span>Select Dataset File to Ingest</span>
+          <label className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-xl transition ${
+            isUploading
+              ? "cursor-not-allowed bg-orange-600/70 opacity-80"
+              : "cursor-pointer bg-orange-500 shadow-orange-500/25 hover:bg-orange-400"
+          }`}>
+            {isUploading ? (
+              <>
+                <RefreshCw size={16} className="animate-spin" />
+                <span>Ingesting & Analyzing Dataset...</span>
+              </>
+            ) : (
+              <>
+                <Upload size={16} />
+                <span>Select Dataset File to Ingest</span>
+              </>
+            )}
             <input
               type="file"
+              disabled={isUploading}
               className="hidden"
               accept=".csv,.json,.jsonl,.parquet"
               onChange={(e) => {
@@ -2222,6 +2261,8 @@ function Overview({
   openIncident,
   onUpload,
   loading = false,
+  error = null,
+  isUploading = false,
 }: {
   datasetOverview: DatasetOverview | null
   datasets?: DatasetAsset[]
@@ -2231,6 +2272,8 @@ function Overview({
   openIncident: (id: string) => void
   onUpload?: (file: File) => void
   loading: boolean
+  error?: string | null
+  isUploading?: boolean
 }) {
   if (loading && !datasetOverview) {
     return (
@@ -2245,7 +2288,13 @@ function Overview({
   if (!datasetOverview || !datasetOverview.asset) {
     return (
       <div className="space-y-6">
-        <EmptyDatasetOverviewHero datasets={datasets} onDatasetSelect={onDatasetSelect} onUpload={onUpload} />
+        <EmptyDatasetOverviewHero
+          datasets={datasets}
+          onDatasetSelect={onDatasetSelect}
+          onUpload={onUpload}
+          error={error}
+          isUploading={isUploading}
+        />
       </div>
     )
   }
@@ -2258,19 +2307,38 @@ function Overview({
   const datasetCorrelations = datasetOverview.correlations || []
   const datasetCases = datasetOverview.cases || []
   const findings = assessment?.findings || []
-  const criticalCount = datasetIncidents.filter((i) => i.severity >= 12).length
+  const criticalCount = datasetIncidents.filter((i: Incident) => i.severity >= 12).length
 
-  // Calculate live risk curve from dataset incidents only
-  const riskCurveData = datasetIncidents.slice(0, 8).map((inc) => ({
-    time: formatTime(inc.first_seen || inc.created_at),
-    risk: Math.min(100, Math.round((inc.severity / 15) * 100)),
-    threshold: 75,
-  }))
+  // Live risk curve from dataset's backend response
+  const riskAssessments = datasetOverview.risk_assessments || []
+  const riskCurveData = useMemo(() => {
+    if (riskAssessments.length > 0) {
+      return riskAssessments.slice(0, 10).map((ra) => ({
+        time: formatTime(ra.scored_at),
+        risk: ra.risk_score,
+        threshold: 75,
+      }))
+    }
+    if (datasetIncidents.length > 0) {
+      return datasetIncidents.slice(0, 10).map((inc: Incident) => ({
+        time: formatTime(inc.first_seen || inc.created_at),
+        risk: Math.min(100, Math.round((inc.severity / 15) * 100)),
+        threshold: 75,
+      }))
+    }
+    return [{ time: "00:00", risk: 0, threshold: 75 }]
+  }, [riskAssessments, datasetIncidents])
 
-  const peakRisk = datasetIncidents.reduce(
-    (max, inc) => Math.max(max, Math.min(100, Math.round((inc.severity / 15) * 100))),
-    0
-  )
+  const peakRisk = useMemo(() => {
+    if (riskAssessments.length > 0) {
+      return Math.max(...riskAssessments.map((ra) => ra.risk_score), 0)
+    }
+    if (datasetIncidents.length > 0) {
+      return Math.max(...datasetIncidents.map((inc: Incident) => Math.min(100, Math.round((inc.severity / 15) * 100))), 0)
+    }
+    return 0
+  }, [riskAssessments, datasetIncidents])
+
   const currentRisk = riskCurveData.length > 0 ? riskCurveData[riskCurveData.length - 1].risk : 0
 
   return (
@@ -3324,33 +3392,48 @@ export function IncidentForgeDashboard() {
   const [correlations, setCorrelations] = useState<Correlation[]>([])
   const [cases, setCases] = useState<Case[]>([])
   const [datasets, setDatasets] = useState<DatasetAsset[]>([])
-  const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null)
-  const selectedDatasetIdRef = useRef<string | null>(null)
+  const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("incidentforge_active_dataset_id") || null
+    }
+    return null
+  })
+  const selectedDatasetIdRef = useRef<string | null>(selectedDatasetId)
   selectedDatasetIdRef.current = selectedDatasetId
-  const [datasetOverview, setDatasetOverview] = useState<any | null>(null)
+  const [datasetOverview, setDatasetOverview] = useState<DatasetOverview | null>(null)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [simulating, setSimulating] = useState(false)
   const [simulationFeedback, setSimulationFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
+  // Dataset switching: Clear previous overview immediately and load new dataset
   const handleDatasetSelect = async (dataset: DatasetAsset, targetPage?: string) => {
     setSelectedDatasetId(dataset.dataset_id);
     selectedDatasetIdRef.current = dataset.dataset_id;
-    setDatasetOverview(null);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("incidentforge_active_dataset_id", dataset.dataset_id);
+    }
+    setDatasetOverview(null); // Clear previous dataset state immediately
     setSimulationFeedback(null);
-    if (targetPage) setPage(targetPage);
+    setUploadError(null);
     setRefreshing(true);
     try {
-      const data = await datasetsApi.getDatasetOverview(dataset.dataset_id);
-      setDatasetOverview(data);
+      const data = await fetchDatasetOverview(dataset.dataset_id);
+      if (selectedDatasetIdRef.current === dataset.dataset_id) {
+        setDatasetOverview(data);
+        if (targetPage) setPage(targetPage);
+      }
     } catch (err) {
       console.error("Failed to load dataset overview:", err);
-      setDatasetOverview(null);
+      const msg = err instanceof Error ? err.message : String(err);
+      setUploadError(`Failed to load dataset '${dataset.name}': ${msg}`);
     } finally {
       setRefreshing(false);
     }
   };
 
   const fetchLiveTelemetry = useCallback(async () => {
-    setRefreshing(true)
     try {
       const [healthRes, alertsRes, incidentsRes, correlationsRes, casesRes, datasetsRes] =
         await Promise.allSettled([
@@ -3371,47 +3454,84 @@ export function IncidentForgeDashboard() {
       if (datasetsRes.status === "fulfilled") {
         const dsList = datasetsRes.value
         setDatasets(dsList)
-        const activeId = selectedDatasetIdRef.current || (dsList.length > 0 ? dsList[0].dataset_id : null)
-        if (activeId) {
-          if (!selectedDatasetIdRef.current) {
-            setSelectedDatasetId(activeId)
-            selectedDatasetIdRef.current = activeId
-          }
-          datasetsApi.getDatasetOverview(activeId)
-            .then((ov) => setDatasetOverview(ov))
-            .catch((e) => console.error("Failed to load dataset overview", e))
+        
+        // Refresh active dataset overview if one is currently selected
+        const currentActiveId = selectedDatasetIdRef.current
+        if (currentActiveId) {
+          fetchDatasetOverview(currentActiveId)
+            .then((ov: DatasetOverview) => {
+              if (selectedDatasetIdRef.current === currentActiveId) {
+                setDatasetOverview(ov)
+              }
+            })
+            .catch((e: unknown) => console.error("Failed to poll dataset overview", e))
         }
       }
     } catch {
       setIsOnline(false)
-    } finally {
-      setRefreshing(false)
     }
   }, [])
 
   const handleUploadFile = async (file: File) => {
+    setIsUploading(true)
     setRefreshing(true)
+    setUploadError(null)
+    setDatasetOverview(null) // Clear previous dataset overview immediately
     try {
-      const data = await datasetsApi.uploadDataset(file)
-      const dsId = data.dataset_id || data.assessment?.asset?.dataset_id
-      if (dsId) {
-        setSelectedDatasetId(dsId)
-        selectedDatasetIdRef.current = dsId
-        setDatasetOverview(null)
-        setSimulationFeedback(null)
-        try {
-          const ov = await datasetsApi.getDatasetOverview(dsId)
-          setDatasetOverview(ov)
-        } catch (e) {
-          console.error("Failed to load overview for uploaded dataset", e)
-        }
+      // 1, 2 & 3: Upload dataset file and wait for processing to complete
+      const uploadResult = await datasetsApi.uploadDataset(file)
+      
+      // 4: Obtain exact dataset ID from the upload response
+      const dsId = uploadResult.dataset_id || uploadResult.assessment?.asset?.dataset_id || uploadResult.assessment?.dataset_id
+      if (!dsId) {
+        throw new Error(uploadResult.message || "Upload completed but no dataset ID was returned by the server")
       }
+
+      // 5: Fetch actual overview/details for that exact dataset
+      const overview = await fetchDatasetOverview(dsId)
+      if (!overview) {
+        throw new Error(`Overview returned empty for dataset '${dsId}'`)
+      }
+      if (!overview.asset && uploadResult.assessment?.asset) {
+        overview.asset = uploadResult.assessment.asset
+      }
+      if (!overview.assessment && uploadResult.assessment) {
+        overview.assessment = uploadResult.assessment
+      }
+
+      // 6: Set active dataset state and persist in localStorage
+      setSelectedDatasetId(dsId)
+      selectedDatasetIdRef.current = dsId
+      if (typeof window !== "undefined") {
+        localStorage.setItem("incidentforge_active_dataset_id", dsId)
+      }
+      setDatasetOverview(overview)
+      setSimulationFeedback(null)
+
+      // Ensure new asset is immediately reflected in catalog list
+      if (overview.asset) {
+        const newAsset = overview.asset
+        setDatasets((prev) => {
+          const exists = prev.some((d) => d.dataset_id === dsId)
+          return exists ? prev.map((d) => (d.dataset_id === dsId ? newAsset : d)) : [newAsset, ...prev]
+        })
+      }
+
+      // 7: Then render Overview
       setPage("Overview")
-      await fetchLiveTelemetry()
+
+      // 8: Background sync of dataset catalog (without clobbering active dataset)
+      datasetsApi.listDatasets(100).then((dsList) => {
+        setDatasets(dsList)
+      }).catch((e) => console.warn("Failed to refresh dataset list after upload:", e))
+
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
-      alert("Upload failed: " + msg)
+      console.error("Dataset upload/overview failed:", err)
+      setUploadError(msg)
+      alert("Dataset Ingestion Error: " + msg)
     } finally {
+      setIsUploading(false)
       setRefreshing(false)
     }
   }
@@ -3427,11 +3547,77 @@ export function IncidentForgeDashboard() {
     return () => window.removeEventListener('dataset-upload', handleUploadEvent)
   }, [])
 
+  // Initial load: Fetch registered datasets and restore active dataset without flicker
   useEffect(() => {
-    fetchLiveTelemetry()
-    // Poll every 30 seconds for live SOC telemetry
-    const timer = setInterval(fetchLiveTelemetry, 30000)
-    return () => clearInterval(timer)
+    let isMounted = true
+
+    async function initDashboard() {
+      setRefreshing(true)
+      try {
+        const dsList = await datasetsApi.listDatasets(100)
+        if (!isMounted) return
+
+        setDatasets(dsList)
+
+        if (dsList.length > 0) {
+          const savedId = typeof window !== "undefined" ? localStorage.getItem("incidentforge_active_dataset_id") : null
+          const matched = savedId ? dsList.find((d) => d.dataset_id === savedId) : null
+          const activeDs = matched || dsList[0]
+          const activeId = activeDs.dataset_id
+
+          setSelectedDatasetId(activeId)
+          selectedDatasetIdRef.current = activeId
+          if (typeof window !== "undefined") {
+            localStorage.setItem("incidentforge_active_dataset_id", activeId)
+          }
+
+          const ov = await fetchDatasetOverview(activeId)
+          if (isMounted) {
+            setDatasetOverview(ov)
+          }
+        } else {
+          setSelectedDatasetId(null)
+          selectedDatasetIdRef.current = null
+          setDatasetOverview(null)
+        }
+
+        const [healthRes, alertsRes, incidentsRes, correlationsRes, casesRes] =
+          await Promise.allSettled([
+            healthApi.checkHealth(),
+            alertsApi.listAlerts({ limit: 100 }),
+            incidentsApi.listIncidents({ limit: 50 }),
+            correlationsApi.listCorrelations({ limit: 50 }),
+            casesApi.listCases({ limit: 50 }),
+          ])
+
+        if (!isMounted) return
+        setIsOnline(healthRes.status === "fulfilled" && healthRes.value.status === "ok")
+        if (alertsRes.status === "fulfilled") setAlerts(alertsRes.value)
+        if (incidentsRes.status === "fulfilled") setIncidents(incidentsRes.value)
+        if (correlationsRes.status === "fulfilled") setCorrelations(correlationsRes.value)
+        if (casesRes.status === "fulfilled") setCases(casesRes.value)
+
+      } catch (err) {
+        console.error("Failed to initialize dashboard telemetry:", err)
+        setIsOnline(false)
+      } finally {
+        if (isMounted) {
+          setInitialLoading(false)
+          setRefreshing(false)
+        }
+      }
+    }
+
+    initDashboard()
+
+    const timer = setInterval(() => {
+      fetchLiveTelemetry()
+    }, 30000)
+
+    return () => {
+      isMounted = false
+      clearInterval(timer)
+    }
   }, [fetchLiveTelemetry])
 
   return (
@@ -3473,7 +3659,9 @@ export function IncidentForgeDashboard() {
               onNavigate={(p) => setPage(p)}
               openIncident={setIncidentId}
               onUpload={handleUploadFile}
-              loading={refreshing && !datasetOverview && datasets.length > 0}
+              loading={initialLoading || refreshing || isUploading}
+              error={uploadError}
+              isUploading={isUploading}
             />
           ) : page === "Alerts" ? (
             <AlertsPageView alerts={alerts} loading={refreshing && alerts.length === 0} />
