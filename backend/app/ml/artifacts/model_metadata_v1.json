@@ -1,0 +1,83 @@
+{
+  "model_name": "baseline_logistic_regression",
+  "model_version": "v1.0",
+  "feature_version": "v2.0",
+  "training_timestamp": "2026-09-28T18:06:52.884140+00:00",
+  "scikit_learn_version": "1.9.0",
+  "features": [
+    "incident_severity",
+    "correlation_severity",
+    "alert_count",
+    "event_count",
+    "correlation_count",
+    "mitre_count",
+    "has_auth_attack",
+    "has_suspicious_process",
+    "has_network_activity",
+    "has_privilege_escalation",
+    "time_span_seconds",
+    "entity_diversity",
+    "has_dataset_activity",
+    "has_sensitive_data_access",
+    "has_bulk_export",
+    "has_dataset_exfiltration",
+    "dataset_sensitivity",
+    "records_accessed_normalized",
+    "records_modified_normalized",
+    "export_volume_normalized",
+    "sensitive_columns_count",
+    "actor_novelty",
+    "bulk_access_indicator"
+  ],
+  "weights": {
+    "incident_severity": 0.292,
+    "correlation_severity": 0.2365,
+    "alert_count": 0.2901,
+    "event_count": 0.1767,
+    "correlation_count": 0.8409,
+    "mitre_count": 0.4043,
+    "has_auth_attack": 0.7884,
+    "has_suspicious_process": 1.1694,
+    "has_network_activity": 0.8172,
+    "has_privilege_escalation": 1.2152,
+    "time_span_seconds": 0.0006,
+    "entity_diversity": 0.4929,
+    "has_dataset_activity": 0.9093,
+    "has_sensitive_data_access": 0.5616,
+    "has_bulk_export": 0.0,
+    "has_dataset_exfiltration": 0.0,
+    "dataset_sensitivity": 0.0,
+    "records_accessed_normalized": 0.0,
+    "records_modified_normalized": 0.0,
+    "export_volume_normalized": 0.0,
+    "sensitive_columns_count": 0.0,
+    "actor_novelty": 0.0,
+    "bulk_access_indicator": 0.0
+  },
+  "intercept": -10.931430905392805,
+  "evaluation_metrics": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "roc_auc": 1.0,
+    "average_precision_pr_auc": 1.0,
+    "confusion_matrix": [
+      [
+        53,
+        0
+      ],
+      [
+        0,
+        47
+      ]
+    ]
+  },
+  "session_id": "eaee4749-83d9-4dc9-bdd8-3017446d3f6e",
+  "dataset_info": {
+    "type": "synthetic_development_data",
+    "dataset": "synthetic",
+    "n_samples": 400,
+    "seed": 42,
+    "note": "For development and testing only. Does not claim real-world SOC benchmark performance."
+  }
+}
