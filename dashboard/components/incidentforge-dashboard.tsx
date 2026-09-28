@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   Activity,
   AlertTriangle,
@@ -35,7 +35,8 @@ import {
   TriangleAlert,
   BarChart3,
   Briefcase,
-  FolderSearch
+  FolderSearch,
+  Upload,
 } from "lucide-react"
 import {
   Area,
@@ -74,6 +75,9 @@ import {
   type ResponseAction,
   type DatasetAsset,
   type DatasetActivity,
+  type DatasetOverview,
+  type DatasetSecurityScore,
+  type DatasetFinding,
 } from "@/lib/api"
 import {
   IncidentStatusPanel,
@@ -120,11 +124,13 @@ function Panel({
   children,
   className = "",
   title,
+  subtitle,
   action,
 }: {
   children: React.ReactNode
   className?: string
   title?: string
+  subtitle?: string
   action?: React.ReactNode
 }) {
   return (
@@ -133,9 +139,12 @@ function Panel({
     >
       {title && (
         <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">
-            {title}
-          </h2>
+          <div>
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">
+              {title}
+            </h2>
+            {subtitle && <p className="mt-0.5 text-[10px] text-slate-500">{subtitle}</p>}
+          </div>
           {action}
         </div>
       )}
@@ -283,10 +292,12 @@ function Topbar({
   page,
   onCommand,
   onRefresh,
+  onUpload,
 }: {
   page: string
   onCommand: () => void
   onRefresh: () => void
+  onUpload?: (file: File) => void
 }) {
   return (
     <header className="flex h-16 items-center justify-between border-b border-white/[0.07] bg-[#0a0a0a]/80 px-5 backdrop-blur-xl">
@@ -295,18 +306,24 @@ function Topbar({
       </div>
       <div className="flex items-center gap-2">
         <Search size={13} className="text-slate-500" />
-        {page === "Dataset Security" && (
-          <label className="cursor-pointer ml-4 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400">
+        {page === "Overview" && (
+          <label className="cursor-pointer ml-4 flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400">
+            <Upload size={13} />
             + Upload Dataset
             <input
               type="file"
               className="hidden"
               accept=".csv,.json,.jsonl,.parquet"
               onChange={(e) => {
-                const file = e.target.files?.[0] ?? null;
+                const file = e.target.files?.[0] ?? null
                 if (file) {
-                  window.dispatchEvent(new CustomEvent('dataset-upload', { detail: file }));
+                  if (onUpload) {
+                    onUpload(file)
+                  } else {
+                    window.dispatchEvent(new CustomEvent('dataset-upload', { detail: file }))
+                  }
                 }
+                e.target.value = ""
               }}
             />
           </label>
@@ -343,97 +360,6 @@ function Topbar({
 }
 
 // ---------------------------------------------------------------------------
-// Overview KPI Cards (Live Data)
-// ---------------------------------------------------------------------------
-
-function MetricCards({
-  alertsCount,
-  incidentsCount,
-  criticalIncidentsCount,
-  casesCount,
-}: {
-  alertsCount: number
-  incidentsCount: number
-  criticalIncidentsCount: number
-  casesCount: number
-}) {
-  const metrics = [
-    {
-      label: "Active Alerts",
-      value: String(alertsCount),
-      delta: "live",
-      detail: "monitored telemetry stream",
-      icon: Activity,
-    },
-    {
-      label: "Active Incidents",
-      value: String(incidentsCount),
-      delta: `${incidentsCount} total`,
-      detail: "correlated attack chains",
-      icon: ShieldAlert,
-    },
-    {
-      label: "Critical Incidents",
-      value: String(criticalIncidentsCount),
-      delta: criticalIncidentsCount > 0 ? "urgent" : "nominal",
-      detail: "severity score ≥ 12",
-      icon: AlertTriangle,
-    },
-    {
-      label: "Open Cases",
-      value: String(casesCount),
-      delta: "active",
-      detail: "under analyst investigation",
-      icon: BriefcaseBusiness,
-    },
-  ]
-
-  return (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-      {metrics.map((metric) => {
-        const Icon = metric.icon
-        return (
-          <div
-            key={metric.label}
-            className="group relative min-h-[128px] overflow-hidden rounded-xl border border-orange-300/30 bg-gradient-to-br from-[#ff7608] via-[#f45600] to-[#b53100] p-4 text-white shadow-[0_12px_32px_rgba(255,101,0,.22)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_85%_15%,rgba(255,255,255,.18),transparent_32%)] transition hover:bg-[#ff7200]"
-          >
-            <div className="flex items-start justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/80">
-                {metric.label}
-              </span>
-              <span className="rounded bg-white/15 p-1.5 text-white">
-                <Icon size={16} />
-              </span>
-            </div>
-            <div className="mt-3 flex items-end justify-between">
-              <div className="font-mono text-3xl font-semibold tracking-tight text-white">
-                {metric.value}
-              </div>
-              <span className="mb-1 flex items-center gap-1 text-[10px] font-medium text-white/90">
-                <ArrowUpRight size={12} />
-                {metric.delta}
-              </span>
-            </div>
-            <div className="mt-1 flex items-end justify-between gap-3">
-              <div className="text-[10px] text-white/75">{metric.detail}</div>
-              <div className="flex h-6 items-end gap-0.5 opacity-80">
-                {[4, 7, 5, 9, 8, 12, 10, 15, 13, 18].map((height, index) => (
-                  <i
-                    key={index}
-                    className="w-1 rounded-t-sm bg-white/65"
-                    style={{ height: `${height}px` }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
 // Threat Activity Trend
 // ---------------------------------------------------------------------------
 
@@ -448,16 +374,54 @@ function ActivityChart({
 }) {
   const [period, setPeriod] = useState("24H")
 
-  // Generate 12 time buckets across 24h
-  const trendData = Array.from({ length: 12 }, (_, i) => {
-    const hour = (i * 2).toString().padStart(2, "0") + ":00"
-    return {
-      time: hour,
-      alerts: Math.max(0, Math.round(alerts.length / 12) + (i % 3 === 0 ? 3 : 1)),
-      incidents: Math.max(0, Math.round(incidents.length / 12) + (i % 4 === 0 ? 1 : 0)),
-      correlations: Math.max(0, Math.round(correlations.length / 12) + (i % 2 === 0 ? 2 : 0)),
-    }
-  })
+  // Derive 12 time buckets across 24h from actual item timestamps
+  const trendData = useMemo(() => {
+    const now = new Date()
+    const bucketHours = 2
+    const buckets = Array.from({ length: 12 }, (_, i) => {
+      const bucketStart = new Date(now.getTime() - (11 - i) * bucketHours * 3600 * 1000)
+      const hourStr = bucketStart.getHours().toString().padStart(2, "0") + ":00"
+      return {
+        time: hourStr,
+        startTime: bucketStart.getTime(),
+        endTime: bucketStart.getTime() + bucketHours * 3600 * 1000,
+        alerts: 0,
+        incidents: 0,
+        correlations: 0,
+      }
+    })
+
+    alerts.forEach((a) => {
+      const t = new Date(a.timestamp).getTime()
+      if (!isNaN(t)) {
+        const bucket = buckets.find((b) => t >= b.startTime && t < b.endTime)
+        if (bucket) bucket.alerts += 1
+      }
+    })
+
+    incidents.forEach((inc) => {
+      const t = new Date(inc.created_at || inc.first_seen || "").getTime()
+      if (!isNaN(t)) {
+        const bucket = buckets.find((b) => t >= b.startTime && t < b.endTime)
+        if (bucket) bucket.incidents += 1
+      }
+    })
+
+    correlations.forEach((c) => {
+      const t = new Date(c.first_seen || "").getTime()
+      if (!isNaN(t)) {
+        const bucket = buckets.find((b) => t >= b.startTime && t < b.endTime)
+        if (bucket) bucket.correlations += 1
+      }
+    })
+
+    return buckets.map(({ time, alerts, incidents, correlations }) => ({
+      time,
+      alerts,
+      incidents,
+      correlations,
+    }))
+  }, [alerts, incidents, correlations])
 
   return (
     <Panel
@@ -521,54 +485,6 @@ function ActivityChart({
             <Area type="monotone" dataKey="correlations" stroke="#f97316" strokeWidth={1.5} fill="none" />
           </AreaChart>
         </ResponsiveContainer>
-      </div>
-    </Panel>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Detection Pipeline Visualizer
-// ---------------------------------------------------------------------------
-
-const pipeline = [
-  "EVENT",
-  "DETECTION",
-  "ALERT",
-  "CORRELATION",
-  "INCIDENT",
-  "ML RISK",
-  "THREAT INTEL",
-  "AI INVESTIGATION",
-  "CASE",
-  "RESPONSE",
-]
-
-function Pipeline() {
-  return (
-    <Panel
-      title="Detection pipeline"
-      action={
-        <span className="flex items-center gap-1.5 text-[10px] text-emerald-400">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-          Processing live
-        </span>
-      }
-    >
-      <div className="flex flex-wrap items-center gap-1.5 px-4 py-4">
-        {pipeline.map((item, i) => (
-          <div key={item} className="flex items-center gap-1.5">
-            <div
-              className={`rounded border px-2 py-1.5 font-mono text-[9px] font-semibold tracking-wider ${
-                i >= 4
-                  ? "border-orange-400/15 bg-orange-400/[0.05] text-orange-300"
-                  : "border-white/[0.08] bg-white/[0.025] text-slate-400"
-              }`}
-            >
-              {item}
-            </div>
-            {i < pipeline.length - 1 && <ChevronRight size={12} className="text-slate-700" />}
-          </div>
-        ))}
       </div>
     </Panel>
   )
@@ -1005,7 +921,7 @@ function IncidentWorkspace({
                     <div><span className="text-slate-500">Actor:</span> <span className="text-slate-300">{String(incident.evidence.actor || incident.evidence.entity_key || "Unknown")}</span></div>
                     <div><span className="text-slate-500">Sensitivity:</span> <span className="text-slate-300">{String(incident.evidence.dataset_sensitivity || incident.evidence.sensitivity || "UNKNOWN")}</span></div>
                     <div><span className="text-slate-500">Records Accessed:</span> <span className="text-slate-300 font-mono">{Number(incident.evidence.records_accessed || 0).toLocaleString()}</span></div>
-                    {incident.evidence.export_destination && (
+                    {Boolean(incident.evidence.export_destination) && (
                       <div className="col-span-2"><span className="text-slate-500">Export Dest:</span> <span className="text-red-300">{String(incident.evidence.export_destination)}</span></div>
                     )}
                     {Array.isArray(incident.evidence.sensitive_columns) && incident.evidence.sensitive_columns.length > 0 && (
@@ -1588,75 +1504,840 @@ function IncidentWorkspace({
 }
 
 // ---------------------------------------------------------------------------
-// Overview Main Screen (Connected to Live API)
+// ---------------------------------------------------------------------------
+// IncidentForge 2.0 Product Flow Pipeline
+// Dataset Upload → Dataset Analysis → Detection/Correlation → Hindsight Recall
+// → Historical Patterns → SOC Investigation → Incident Response
 // ---------------------------------------------------------------------------
 
-function Overview({ onDatasetSelect,
-  openIncident,
-  alerts,
-  incidents,
-  correlations,
-  cases,
-  isOnline,
-  loading,
+function ProductFlowPipeline({
+  datasetOverview,
+  isOnline = true,
 }: {
-  openIncident: (id: string) => void
-  alerts: Alert[]
-  incidents: Incident[]
-  correlations: Correlation[]
-  cases: Case[]
-  isOnline: boolean
-  loading: boolean
-  onDatasetSelect: (dataset: DatasetAsset) => void
+  datasetOverview: DatasetOverview | null
+  isOnline?: boolean
 }) {
-  const criticalCount = incidents.filter((i) => i.severity >= 12).length
+  const hasDataset = Boolean(datasetOverview?.asset)
+  const alertCount = datasetOverview?.alerts?.length || 0
+  const correlationCount = datasetOverview?.correlations?.length || 0
+  const incidentCount = datasetOverview?.incidents?.length || 0
+  const caseCount = datasetOverview?.cases?.length || 0
+  const responseCount = datasetOverview?.response_records?.length || 0
+  const sensitiveCount = datasetOverview?.asset?.sensitive_columns?.length || 0
 
-  // Calculate live risk curve from active incidents
-  const riskCurveData = incidents.slice(0, 8).map((inc, index) => ({
+  const stages = [
+    {
+      id: "upload",
+      step: "01",
+      label: "Dataset Upload",
+      status: hasDataset ? "COMPLETED" : "WAITING",
+      subtext: hasDataset ? (datasetOverview?.asset?.format?.toUpperCase() || "UPLOADED") : "Upload File",
+      detail: hasDataset ? `${datasetOverview?.asset?.record_count?.toLocaleString()} records` : "CSV / JSON / Parquet",
+      icon: Upload,
+    },
+    {
+      id: "analysis",
+      step: "02",
+      label: "Dataset Analysis",
+      status: hasDataset ? "COMPLETED" : "STANDBY",
+      subtext: hasDataset ? `${sensitiveCount} sensitive cols` : "Schema Profiling",
+      detail: hasDataset ? `Posture: ${datasetOverview?.assessment?.security_score?.score ?? "—"}/100` : "PII & policy scan",
+      icon: FileSearch,
+    },
+    {
+      id: "detection",
+      step: "03",
+      label: "Detection / Correlation",
+      status: hasDataset ? (alertCount > 0 ? "FLAGGED" : "NOMINAL") : "STANDBY",
+      subtext: hasDataset ? `${alertCount} alerts · ${correlationCount} chains` : "Rule Matches",
+      detail: hasDataset ? (correlationCount > 0 ? "Attack chains correlated" : "Clean baseline") : "Detection engine",
+      icon: Crosshair,
+    },
+    {
+      id: "investigation",
+      step: "04",
+      label: "SOC Investigation",
+      status: incidentCount > 0 ? "ACTIVE" : (hasDataset ? "CLEAN" : "STANDBY"),
+      subtext: hasDataset ? `${incidentCount} incidents · ${caseCount} cases` : "Analyst Queue",
+      detail: hasDataset ? `${incidentCount > 0 ? "Under AI review" : "Nominal"}` : "Autonomous triage",
+      icon: FolderSearch,
+    },
+    {
+      id: "response",
+      step: "05",
+      label: "Incident Response",
+      status: responseCount > 0 ? "ACTIONABLE" : (hasDataset ? "READY" : "STANDBY"),
+      subtext: hasDataset ? `${responseCount} mitigations tracked` : "State Machine",
+      detail: hasDataset ? (responseCount > 0 ? "Mitigation active" : "Response idle") : "Remediation",
+      icon: ShieldAlert,
+    },
+  ]
+
+  return (
+    <Panel
+      title="IncidentForge 2.0 Product Flow"
+      subtitle="End-to-End Dataset SOC Investigation Lifecycle"
+      action={
+        <div className="flex items-center gap-2">
+          <span className={`flex items-center gap-1.5 text-[10px] ${isOnline ? "text-emerald-400" : "text-amber-400"}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
+            {isOnline ? "Pipeline Active" : "Backend Offline"}
+          </span>
+        </div>
+      }
+    >
+      <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        {stages.map((stage) => {
+          const Icon = stage.icon
+          const isDone = stage.status === "COMPLETED" || stage.status === "FLAGGED" || stage.status === "ACTIVE"
+          return (
+            <div
+              key={stage.id}
+              className={`relative flex flex-col justify-between rounded-lg border p-3 transition-all ${
+                isDone
+                  ? "border-orange-500/30 bg-orange-500/[0.05] hover:border-orange-500/50"
+                  : "border-white/[0.06] bg-white/[0.02]"
+              }`}
+            >
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[9px] font-bold text-slate-500">
+                    {stage.step}
+                  </span>
+                  <span
+                    className={`rounded px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider ${
+                      stage.status === "COMPLETED" || stage.status === "ACTIVE" || stage.status === "FLAGGED"
+                        ? "border border-orange-500/30 bg-orange-500/10 text-orange-300"
+                        : "border border-white/10 bg-white/5 text-slate-400"
+                    }`}
+                  >
+                    {stage.status}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <div
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded ${
+                      isDone
+                        ? "bg-orange-500/20 text-orange-400"
+                        : "bg-white/5 text-slate-500"
+                    }`}
+                  >
+                    <Icon size={12} />
+                  </div>
+                  <h3 className="text-xs font-semibold text-slate-200">{stage.label}</h3>
+                </div>
+                <p className="mt-1 text-[10px] text-slate-400">{stage.subtext}</p>
+              </div>
+              <div className="mt-3 border-t border-white/[0.06] pt-1.5 text-[9px] font-mono text-slate-500">
+                {stage.detail}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </Panel>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Dataset-Specific KPI Metrics (100% Genuine Data Traceability)
+// ---------------------------------------------------------------------------
+
+function DatasetMetricCards({
+  recordCount,
+  format,
+  columnCount,
+  alertsCount,
+  correlationsCount,
+  incidentsCount,
+  criticalIncidentsCount,
+  securityScore,
+}: {
+  recordCount: number
+  format: string
+  columnCount: number
+  alertsCount: number
+  correlationsCount: number
+  incidentsCount: number
+  criticalIncidentsCount: number
+  securityScore?: DatasetSecurityScore
+}) {
+  const metrics = [
+    {
+      label: "Records Processed",
+      value: recordCount.toLocaleString(),
+      delta: format.toUpperCase(),
+      detail: `${columnCount} schema columns profiled`,
+      icon: Database,
+    },
+    {
+      label: "Dataset Detections",
+      value: String(alertsCount),
+      delta: alertsCount > 0 ? "threat flagged" : "clean",
+      detail: "rule triggers against dataset activity",
+      icon: Activity,
+    },
+    {
+      label: "Attack Correlations",
+      value: String(correlationsCount),
+      delta: correlationsCount > 0 ? "chains formed" : "none",
+      detail: "multi-alert correlated attack chains",
+      icon: GitBranch,
+    },
+    {
+      label: "Dataset Incidents",
+      value: String(incidentsCount),
+      delta: `${criticalIncidentsCount} critical (≥12)`,
+      detail: `Posture health: ${securityScore?.score ?? "—"}/100 (${securityScore?.risk_level || "UNKNOWN"})`,
+      icon: ShieldAlert,
+    },
+  ]
+
+  return (
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      {metrics.map((metric) => {
+        const Icon = metric.icon
+        return (
+          <div
+            key={metric.label}
+            className="group relative min-h-[128px] overflow-hidden rounded-xl border border-orange-300/30 bg-gradient-to-br from-[#ff7608] via-[#f45600] to-[#b53100] p-4 text-white shadow-[0_12px_32px_rgba(255,101,0,.22)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_85%_15%,rgba(255,255,255,.18),transparent_32%)] transition hover:bg-[#ff7200]"
+          >
+            <div className="flex items-start justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/80">
+                {metric.label}
+              </span>
+              <span className="rounded bg-white/15 p-1.5 text-white">
+                <Icon size={16} />
+              </span>
+            </div>
+            <div className="mt-3 flex items-end justify-between">
+              <div className="font-mono text-3xl font-semibold tracking-tight text-white">
+                {metric.value}
+              </div>
+              <span className="mb-1 flex items-center gap-1 text-[10px] font-medium text-white/90">
+                <ArrowUpRight size={12} />
+                {metric.delta}
+              </span>
+            </div>
+            <div className="mt-1 flex items-end justify-between gap-3">
+              <div className="text-[10px] text-white/75">{metric.detail}</div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Relevant SOC Findings from Dataset Assessment
+// ---------------------------------------------------------------------------
+
+function DatasetSOCFindingsPanel({
+  findings = [],
+  asset,
+  onViewDeepSecurity,
+}: {
+  findings?: DatasetFinding[]
+  asset?: DatasetAsset
+  onViewDeepSecurity: () => void
+}) {
+  return (
+    <Panel
+      title="Relevant SOC Findings"
+      subtitle="Security vulnerabilities & compliance flags detected from dataset schema"
+      action={
+        <button
+          onClick={onViewDeepSecurity}
+          className="text-[10px] font-semibold text-orange-400 hover:text-orange-300 hover:underline flex items-center gap-1"
+        >
+          View Full Security Analysis →
+        </button>
+      }
+    >
+      <div className="p-4 space-y-3">
+        {asset && (
+          <div className="flex items-center justify-between rounded border border-white/[0.06] bg-black/30 p-2.5 text-xs">
+            <span className="text-slate-400">Sensitive Columns Flagged:</span>
+            <span className="font-mono font-semibold text-orange-300">
+              {asset.sensitive_columns?.length || 0} of {asset.column_count} fields
+            </span>
+          </div>
+        )}
+
+        {findings.length === 0 ? (
+          <div className="flex h-32 flex-col items-center justify-center rounded border border-dashed border-white/10 p-4 text-center">
+            <CheckCircle2 size={24} className="text-emerald-400 mb-1" />
+            <span className="text-xs font-semibold text-slate-300">Clean Security Baseline</span>
+            <span className="text-[10px] text-slate-500 mt-0.5">
+              No critical PII exposure or schema vulnerabilities identified for this dataset.
+            </span>
+          </div>
+        ) : (
+          <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+            {findings.map((f, i) => (
+              <div
+                key={f.finding_id || i}
+                className="rounded border border-white/[0.06] bg-white/[0.02] p-2.5 text-xs transition hover:border-white/20"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-slate-200">{f.title}</span>
+                  <span
+                    className={`rounded px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase ${
+                      f.severity === "CRITICAL"
+                        ? "bg-red-500/15 text-red-400 border border-red-500/30"
+                        : f.severity === "HIGH"
+                        ? "bg-orange-500/15 text-orange-400 border border-orange-500/30"
+                        : f.severity === "MEDIUM"
+                        ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                        : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                    }`}
+                  >
+                    {f.severity}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{f.description}</p>
+                {Array.isArray(f.affected_columns) && f.affected_columns.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[10px]">
+                    <span className="text-slate-500">Columns:</span>
+                    {f.affected_columns.map((col) => (
+                      <span key={col} className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-orange-200">
+                        {col}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Panel>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Hindsight Memory & Pattern Architecture (Standby for v2.0)
+// ---------------------------------------------------------------------------
+
+function HindsightReadinessCard() {
+  return (
+    <Panel
+      title="Hindsight Memory & Historical Patterns (v2.0 Standby)"
+      subtitle="Cross-Investigation Memory Engine Architecture"
+      action={
+        <span className="rounded border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 font-mono text-[9px] font-bold text-purple-300">
+          HINDSIGHT STANDBY
+        </span>
+      }
+    >
+      <div className="grid gap-4 p-4 md:grid-cols-2">
+        <div className="rounded-lg border border-purple-500/15 bg-purple-500/[0.02] p-3 text-xs">
+          <div className="flex items-center gap-2 font-semibold text-purple-300">
+            <Bot size={15} />
+            <span>Stage 4: Hindsight Recall</span>
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
+            Enables memory-powered entity resolution across historical datasets. Autonomous retrieval searches past investigation notes, actor profiles, and resolved attack chains.
+          </p>
+          <div className="mt-3 flex items-center gap-2 text-[10px] font-mono text-purple-400/80">
+            <span className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse" />
+            Awaiting Hindsight Provider Integration
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-purple-500/15 bg-purple-500/[0.02] p-3 text-xs">
+          <div className="flex items-center gap-2 font-semibold text-purple-300">
+            <GitBranch size={15} />
+            <span>Stage 5: Historical Patterns</span>
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
+            Temporal graph matching connects newly ingested anomalies against previously confirmed incidents, highlighting recurring APT behaviors and repeat threat actors.
+          </p>
+          <div className="mt-3 flex items-center gap-2 text-[10px] font-mono text-purple-400/80">
+            <span className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse" />
+            Pattern Graph Engine Ready
+          </div>
+        </div>
+      </div>
+    </Panel>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Supporting Telemetry: Host & Endpoint Stream (Preserving V1)
+// ---------------------------------------------------------------------------
+
+function SupportingTelemetryPanel({
+  endpointAlerts = [],
+  endpointIncidents = [],
+  endpointCorrelations = [],
+  isOnline = true,
+  onNavigate,
+}: {
+  endpointAlerts?: Alert[]
+  endpointIncidents?: Incident[]
+  endpointCorrelations?: Correlation[]
+  isOnline?: boolean
+  onNavigate: (page: string) => void
+}) {
+  const [collapsed, setCollapsed] = useState(true)
+
+  return (
+    <Panel
+      title="Supporting Telemetry: Host & Endpoint Stream (V1)"
+      subtitle="Background host telemetry, Wazuh sensors, and endpoint detection stream"
+      action={
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="text-[10px] font-medium text-slate-400 hover:text-white flex items-center gap-1"
+        >
+          {collapsed ? "Expand Details ↓" : "Collapse ↑"}
+        </button>
+      }
+    >
+      <div className="p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3">
+            <span className={`flex items-center gap-1.5 font-mono text-[10px] ${isOnline ? "text-emerald-400" : "text-amber-400"}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? "bg-emerald-400" : "bg-amber-400"}`} />
+              {isOnline ? "ENDPOINT SENSORS CONNECTED" : "ENDPOINT SENSORS OFFLINE"}
+            </span>
+            <span className="text-slate-500">|</span>
+            <span className="text-slate-400">
+              <strong className="text-white font-mono">{endpointAlerts.length}</strong> background alerts
+            </span>
+            <span className="text-slate-400">
+              <strong className="text-white font-mono">{endpointIncidents.length}</strong> endpoint incidents
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onNavigate("Alerts")}
+              className="rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] text-slate-300 hover:bg-white/10"
+            >
+              View Endpoint Alerts Stream →
+            </button>
+            <button
+              onClick={() => onNavigate("Incidents")}
+              className="rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] text-slate-300 hover:bg-white/10"
+            >
+              View Endpoint Incidents →
+            </button>
+          </div>
+        </div>
+
+        {!collapsed && (
+          <div className="mt-3 pt-3 border-t border-white/[0.06] grid gap-3 md:grid-cols-3 text-xs">
+            <div className="rounded border border-white/5 bg-black/20 p-3">
+              <span className="text-[10px] uppercase font-bold text-slate-400">Monitored Ingestion</span>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Endpoint logs stream through normalization, detection rules, and correlation engine independently of dataset uploads.
+              </p>
+            </div>
+            <div className="rounded border border-white/5 bg-black/20 p-3">
+              <span className="text-[10px] uppercase font-bold text-slate-400">Wazuh & Host Telemetry</span>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Wazuh adapter and event pipeline remain fully active for multi-source security investigations.
+              </p>
+            </div>
+            <div className="rounded border border-white/5 bg-black/20 p-3">
+              <span className="text-[10px] uppercase font-bold text-slate-400">Correlation Bridge</span>
+              <p className="mt-1 text-[11px] text-slate-500">
+                {endpointCorrelations.length} global correlation records active across host and network infrastructure.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </Panel>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Active Dataset Banner
+// ---------------------------------------------------------------------------
+
+function ActiveDatasetBanner({
+  datasetOverview,
+  datasets,
+  onDatasetSelect,
+  onViewDeepSecurity,
+  onUpload,
+}: {
+  datasetOverview: DatasetOverview
+  datasets: DatasetAsset[]
+  onDatasetSelect: (asset: DatasetAsset) => void
+  onViewDeepSecurity: () => void
+  onUpload?: (file: File) => void
+}) {
+  const asset = datasetOverview.asset
+  const score = datasetOverview.assessment?.security_score
+
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-orange-500/25 bg-gradient-to-r from-[#171310] via-[#141416] to-[#121516] p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20">
+            <Database size={22} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="rounded bg-orange-500/20 px-2 py-0.5 font-mono text-[9px] font-bold text-orange-300 uppercase tracking-widest border border-orange-500/30">
+                ACTIVE DATASET ANALYSIS
+              </span>
+              <h1 className="text-base font-bold text-white tracking-wide">
+                {asset?.name || datasetOverview.dataset_id}
+              </h1>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs font-mono text-slate-400">
+              <span className="flex items-center gap-1 text-slate-300 font-semibold">
+                {asset?.format?.toUpperCase() || "CSV"}
+              </span>
+              <span>·</span>
+              <span>{asset?.record_count?.toLocaleString() || 0} records</span>
+              <span>·</span>
+              <span>{asset?.column_count || 0} columns</span>
+              <span>·</span>
+              <span className={asset?.sensitivity === "HIGH" || asset?.sensitivity === "CRITICAL" ? "text-red-400 font-semibold" : "text-amber-400 font-semibold"}>
+                {asset?.sensitivity || "UNKNOWN"} SENSITIVITY
+              </span>
+              {score && (
+                <>
+                  <span>·</span>
+                  <span className="text-emerald-400 font-semibold">
+                    Posture: {score.score}/100 ({score.risk_level})
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {datasets.length > 1 && (
+            <select
+              value={datasetOverview.dataset_id}
+              onChange={(e) => {
+                const target = datasets.find((d) => d.dataset_id === e.target.value)
+                if (target) onDatasetSelect(target)
+              }}
+              className="rounded border border-white/10 bg-black/60 px-3 py-1.5 font-mono text-xs text-slate-300 outline-none hover:border-white/20"
+            >
+              {datasets.map((d) => (
+                <option key={d.dataset_id} value={d.dataset_id}>
+                  Switch: {d.name} ({d.format.toUpperCase()})
+                </option>
+              ))}
+            </select>
+          )}
+
+          <label className="cursor-pointer flex items-center gap-1.5 rounded-lg bg-orange-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400">
+            <Upload size={13} />
+            <span>+ Upload Dataset</span>
+            <input
+              type="file"
+              className="hidden"
+              accept=".csv,.json,.jsonl,.parquet"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null
+                if (file) {
+                  if (onUpload) {
+                    onUpload(file)
+                  } else {
+                    window.dispatchEvent(new CustomEvent("dataset-upload", { detail: file }))
+                  }
+                }
+                e.target.value = ""
+              }}
+            />
+          </label>
+
+          <button
+            onClick={onViewDeepSecurity}
+            className="rounded bg-white/10 hover:bg-white/15 px-3 py-1.5 text-xs font-medium text-slate-200 transition flex items-center gap-1.5"
+          >
+            <span>Deep Security Analysis</span>
+            <ChevronRight size={13} />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Empty / Ingestion State when No Dataset is Uploaded Yet
+// ---------------------------------------------------------------------------
+
+function EmptyDatasetOverviewHero({
+  datasets = [],
+  onDatasetSelect,
+  onUpload,
+}: {
+  datasets?: DatasetAsset[]
+  onDatasetSelect: (asset: DatasetAsset) => void
+  onUpload?: (file: File) => void
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="relative overflow-hidden rounded-2xl border border-orange-500/25 bg-gradient-to-b from-[#191512] via-[#121214] to-[#0d0e10] p-8 text-center shadow-2xl">
+        <div className="flex justify-end mb-2">
+          <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400">
+            <Upload size={14} />
+            <span>+ Upload Dataset</span>
+            <input
+              type="file"
+              className="hidden"
+              accept=".csv,.json,.jsonl,.parquet"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null
+                if (file) {
+                  if (onUpload) {
+                    onUpload(file)
+                  } else {
+                    window.dispatchEvent(new CustomEvent("dataset-upload", { detail: file }))
+                  }
+                }
+                e.target.value = ""
+              }}
+            />
+          </label>
+        </div>
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-400 border border-orange-500/25">
+          <Upload size={32} />
+        </div>
+        <h2 className="mt-4 text-2xl font-bold tracking-tight text-white">
+          Upload Dataset for IncidentForge 2.0 Investigation
+        </h2>
+        <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-slate-400">
+          The IncidentForge 2.0 overview is driven directly by dataset analysis. Upload your telemetry or structured asset (CSV, JSON, JSONL, Parquet) to profile schema risk, trigger detection rules, and run autonomous SOC investigations.
+        </p>
+
+        <div className="mt-6 flex justify-center">
+          <label className="cursor-pointer flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-xl shadow-orange-500/25 transition hover:bg-orange-400">
+            <Upload size={16} />
+            <span>Select Dataset File to Ingest</span>
+            <input
+              type="file"
+              className="hidden"
+              accept=".csv,.json,.jsonl,.parquet"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null
+                if (file) {
+                  if (onUpload) {
+                    onUpload(file)
+                  } else {
+                    window.dispatchEvent(new CustomEvent("dataset-upload", { detail: file }))
+                  }
+                }
+                e.target.value = ""
+              }}
+            />
+          </label>
+        </div>
+
+        <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-3 text-left md:grid-cols-4 text-xs">
+          <div className="rounded border border-white/5 bg-black/30 p-3">
+            <div className="font-mono text-[10px] font-bold text-orange-400">STAGE 01-02</div>
+            <div className="mt-1 font-semibold text-slate-200">Schema & PII Scan</div>
+            <div className="mt-0.5 text-[10px] text-slate-500">Sensitive columns & posture score</div>
+          </div>
+          <div className="rounded border border-white/5 bg-black/30 p-3">
+            <div className="font-mono text-[10px] font-bold text-orange-400">STAGE 03</div>
+            <div className="mt-1 font-semibold text-slate-200">Detection & Chains</div>
+            <div className="mt-0.5 text-[10px] text-slate-500">Correlated multi-event attacks</div>
+          </div>
+          <div className="rounded border border-white/5 bg-black/30 p-3">
+            <div className="font-mono text-[10px] font-bold text-orange-400">STAGE 04</div>
+            <div className="mt-1 font-semibold text-slate-200">Risk Scoring</div>
+            <div className="mt-0.5 text-[10px] text-slate-500">ML risk prioritization</div>
+          </div>
+          <div className="rounded border border-white/5 bg-black/30 p-3">
+            <div className="font-mono text-[10px] font-bold text-orange-400">STAGE 05</div>
+            <div className="mt-1 font-semibold text-slate-200">Investigation & Action</div>
+            <div className="mt-0.5 text-[10px] text-slate-500">AI triage & response execution</div>
+          </div>
+        </div>
+      </div>
+
+      {datasets.length > 0 && (
+        <Panel title="Existing Registered Datasets" subtitle="Or select a previously uploaded dataset to analyze on the overview">
+          <div className="overflow-x-auto p-2">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-white/[0.06] text-[10px] font-bold uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-2">Dataset Name</th>
+                  <th className="px-4 py-2">Format</th>
+                  <th className="px-4 py-2 text-right">Records</th>
+                  <th className="px-4 py-2">Sensitivity</th>
+                  <th className="px-4 py-2 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04]">
+                {datasets.map((d) => (
+                  <tr key={d.dataset_id} className="hover:bg-white/[0.02]">
+                    <td className="px-4 py-3 font-semibold text-slate-200">{d.name}</td>
+                    <td className="px-4 py-3 font-mono text-slate-400">{d.format.toUpperCase()}</td>
+                    <td className="px-4 py-3 font-mono text-right text-slate-300">{d.record_count.toLocaleString()}</td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold font-mono ${
+                        d.sensitivity === "HIGH" || d.sensitivity === "CRITICAL"
+                          ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                          : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                      }`}>
+                        {d.sensitivity}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => onDatasetSelect(d)}
+                        className="rounded bg-orange-500/15 border border-orange-500/30 px-3 py-1 font-semibold text-xs text-orange-300 hover:bg-orange-500/25"
+                      >
+                        Load into Overview
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Overview Main Screen (IncidentForge 2.0 Dataset Investigation Dashboard)
+// ---------------------------------------------------------------------------
+
+function Overview({
+  datasetOverview,
+  datasets = [],
+  selectedDatasetId,
+  onDatasetSelect,
+  onNavigate,
+  openIncident,
+  onUpload,
+  loading = false,
+}: {
+  datasetOverview: DatasetOverview | null
+  datasets?: DatasetAsset[]
+  selectedDatasetId: string | null
+  onDatasetSelect: (dataset: DatasetAsset) => void
+  onNavigate: (page: string) => void
+  openIncident: (id: string) => void
+  onUpload?: (file: File) => void
+  loading: boolean
+}) {
+  if (loading && !datasetOverview) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center text-center">
+        <RefreshCw size={24} className="animate-spin text-orange-400 mb-2" />
+        <span className="text-sm font-semibold text-slate-300">Loading dataset SOC analysis...</span>
+        <span className="text-xs text-slate-500">Querying dataset detections, risk scoring, and cases</span>
+      </div>
+    )
+  }
+
+  if (!datasetOverview || !datasetOverview.asset) {
+    return (
+      <div className="space-y-6">
+        <EmptyDatasetOverviewHero datasets={datasets} onDatasetSelect={onDatasetSelect} onUpload={onUpload} />
+      </div>
+    )
+  }
+
+  // Live dataset values ONLY
+  const asset = datasetOverview.asset
+  const assessment = datasetOverview.assessment
+  const datasetAlerts = datasetOverview.alerts || []
+  const datasetIncidents = datasetOverview.incidents || []
+  const datasetCorrelations = datasetOverview.correlations || []
+  const datasetCases = datasetOverview.cases || []
+  const findings = assessment?.findings || []
+  const criticalCount = datasetIncidents.filter((i) => i.severity >= 12).length
+
+  // Calculate live risk curve from dataset incidents only
+  const riskCurveData = datasetIncidents.slice(0, 8).map((inc) => ({
     time: formatTime(inc.first_seen || inc.created_at),
     risk: Math.min(100, Math.round((inc.severity / 15) * 100)),
-    threshold: 65,
+    threshold: 75,
   }))
 
-  const peakRisk = incidents.reduce(
+  const peakRisk = datasetIncidents.reduce(
     (max, inc) => Math.max(max, Math.min(100, Math.round((inc.severity / 15) * 100))),
     0
   )
   const currentRisk = riskCurveData.length > 0 ? riskCurveData[riskCurveData.length - 1].risk : 0
 
   return (
-    <div className="space-y-4">
-      <MetricCards
-        alertsCount={alerts.length}
-        incidentsCount={incidents.length}
-        criticalIncidentsCount={criticalCount}
-        casesCount={cases.length}
+    <div className="space-y-5">
+      {/* 1. Active Dataset Banner with + Upload Dataset in top-right */}
+      <ActiveDatasetBanner
+        datasetOverview={datasetOverview}
+        datasets={datasets}
+        onDatasetSelect={onDatasetSelect}
+        onViewDeepSecurity={() => onNavigate("Dataset Security")}
+        onUpload={onUpload}
       />
 
+      {/* 2. 5-Stage Product Flow Pipeline */}
+      <ProductFlowPipeline datasetOverview={datasetOverview} isOnline={true} />
+
+      {/* 3. Metric KPI Cards for Selected Dataset */}
+      <DatasetMetricCards
+        recordCount={asset.record_count}
+        format={asset.format}
+        columnCount={asset.column_count}
+        alertsCount={datasetAlerts.length}
+        correlationsCount={datasetCorrelations.length}
+        incidentsCount={datasetIncidents.length}
+        criticalIncidentsCount={criticalCount}
+        securityScore={assessment?.security_score}
+      />
+
+      {/* 4. Threat Activity Trend for this dataset */}
       <div className="grid gap-4 xl:grid-cols-[1fr]">
-        <ActivityChart alerts={alerts} incidents={incidents} correlations={correlations} />
+        <ActivityChart
+          alerts={datasetAlerts}
+          incidents={datasetIncidents}
+          correlations={datasetCorrelations}
+        />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr_0.8fr]">
-        <MitrePanel incidents={incidents} alerts={alerts} />
-        <IncidentStatusPanel incidents={incidents} />
-        <SystemStatusPanel isOnline={isOnline} />
+      {/* 5. Threat Vectors: MITRE Tactics + Severity Distribution + Relevant SOC Findings */}
+      <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr_1.1fr]">
+        <MitrePanel incidents={datasetIncidents} alerts={datasetAlerts} />
+        <IncidentStatusPanel incidents={datasetIncidents} />
+        <DatasetSOCFindingsPanel
+          findings={findings}
+          asset={asset}
+          onViewDeepSecurity={() => onNavigate("Dataset Security")}
+        />
       </div>
 
+      {/* 6. Timeline Risk Curve + Investigation Queue */}
       <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
         <RiskCurvePanel
-          data={riskCurveData.length > 0 ? riskCurveData : [{ time: "00:00", risk: 0, threshold: 65 }]}
+          data={riskCurveData.length > 0 ? riskCurveData : [{ time: "00:00", risk: 0, threshold: 75 }]}
           currentRisk={currentRisk}
           peakRisk={peakRisk}
         />
-        <InvestigationQueuePanel cases={cases} openIncident={openIncident} />
+        <InvestigationQueuePanel cases={datasetCases} openIncident={openIncident} />
       </div>
 
-      <Pipeline />
-
+      {/* 7. Dataset Incidents & Alerts Stream */}
       <div className="grid gap-4 xl:grid-cols-[1.7fr_0.8fr]">
-        <IncidentsTable incidents={incidents} openIncident={openIncident} loading={loading} onDatasetSelect={onDatasetSelect} />
-        <AlertStream alerts={alerts} loading={loading} />
+        <IncidentsTable
+          incidents={datasetIncidents}
+          openIncident={openIncident}
+          loading={loading}
+          onDatasetSelect={onDatasetSelect}
+        />
+        <AlertStream alerts={datasetAlerts} loading={loading} />
       </div>
     </div>
   )
@@ -2113,7 +2794,7 @@ function DatasetSecurityView({
                  {eventData.map(ev => (
                     <div key={ev.name} className="flex items-center justify-between border-b border-white/5 pb-2 text-sm">
                       <span className="text-slate-300">{ev.name.replace(/_/g, ' ')}</span>
-                      <span className="font-mono text-orange-400 font-semibold">{ev.value}</span>
+                      <span className="font-mono text-orange-400 font-semibold">{String(ev.value)}</span>
                     </div>
                  ))}
                </div>
@@ -2392,10 +3073,10 @@ function CorrelationsPageView({ correlations, loading }: { correlations: Correla
               ) : (
                 correlations.map((c) => (
                   <tr key={c.correlation_id} className="transition-colors hover:bg-white/[0.02]">
-                    <td className="px-4 py-3 text-slate-200">{c.rule_name}</td>
+                    <td className="px-4 py-3 text-slate-200">{c.title}</td>
                     <td className="px-4 py-3 font-mono text-[10px] text-orange-300">{c.entity_key}</td>
                     <td className="px-4 py-3 font-mono text-[10px] text-slate-400">{c.alert_ids?.length || 0}</td>
-                    <td className="px-4 py-3 font-mono text-[10px] text-slate-400">{formatTime(c.created_at)}</td>
+                    <td className="px-4 py-3 font-mono text-[10px] text-slate-400">{formatTime(c.first_seen)}</td>
                     <td className="px-4 py-3 font-mono text-[10px] text-slate-500">{c.correlation_id}</td>
                   </tr>
                 ))
@@ -2643,32 +3324,25 @@ export function IncidentForgeDashboard() {
   const [correlations, setCorrelations] = useState<Correlation[]>([])
   const [cases, setCases] = useState<Case[]>([])
   const [datasets, setDatasets] = useState<DatasetAsset[]>([])
-  const [datasetActivities, setDatasetActivities] = useState<DatasetActivity[]>([])
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null)
+  const selectedDatasetIdRef = useRef<string | null>(null)
+  selectedDatasetIdRef.current = selectedDatasetId
   const [datasetOverview, setDatasetOverview] = useState<any | null>(null)
   const [simulating, setSimulating] = useState(false)
   const [simulationFeedback, setSimulationFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
-  
-  const handleDatasetSelect = async (dataset: DatasetAsset) => {
+  const handleDatasetSelect = async (dataset: DatasetAsset, targetPage?: string) => {
     setSelectedDatasetId(dataset.dataset_id);
+    selectedDatasetIdRef.current = dataset.dataset_id;
     setDatasetOverview(null);
     setSimulationFeedback(null);
-    setPage("Dataset Security");
+    if (targetPage) setPage(targetPage);
     setRefreshing(true);
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000"
-      const response = await fetch(`${baseUrl}/api/v1/data-assets/${dataset.dataset_id}/overview`, {
-        method: "GET"
-      });
-      if (response.ok) {
-         const data = await response.json();
-         setDatasetOverview(data);
-      } else {
-         setDatasetOverview(null);
-      }
+      const data = await datasetsApi.getDatasetOverview(dataset.dataset_id);
+      setDatasetOverview(data);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load dataset overview:", err);
       setDatasetOverview(null);
     } finally {
       setRefreshing(false);
@@ -2678,7 +3352,7 @@ export function IncidentForgeDashboard() {
   const fetchLiveTelemetry = useCallback(async () => {
     setRefreshing(true)
     try {
-      const [healthRes, alertsRes, incidentsRes, correlationsRes, casesRes, datasetsRes, activitiesRes] =
+      const [healthRes, alertsRes, incidentsRes, correlationsRes, casesRes, datasetsRes] =
         await Promise.allSettled([
           healthApi.checkHealth(),
           alertsApi.listAlerts({ limit: 100 }),
@@ -2686,7 +3360,6 @@ export function IncidentForgeDashboard() {
           correlationsApi.listCorrelations({ limit: 50 }),
           casesApi.listCases({ limit: 50 }),
           datasetsApi.listDatasets(100),
-          datasetsApi.getDatasetActivity("all", 100).catch(() => []), // Optional if endpoint supports "all" or generic list
         ])
 
       setIsOnline(healthRes.status === "fulfilled" && healthRes.value.status === "ok")
@@ -2695,8 +3368,20 @@ export function IncidentForgeDashboard() {
       if (incidentsRes.status === "fulfilled") setIncidents(incidentsRes.value)
       if (correlationsRes.status === "fulfilled") setCorrelations(correlationsRes.value)
       if (casesRes.status === "fulfilled") setCases(casesRes.value)
-      if (datasetsRes.status === "fulfilled") setDatasets(datasetsRes.value)
-      if (activitiesRes.status === "fulfilled") setDatasetActivities(activitiesRes.value)
+      if (datasetsRes.status === "fulfilled") {
+        const dsList = datasetsRes.value
+        setDatasets(dsList)
+        const activeId = selectedDatasetIdRef.current || (dsList.length > 0 ? dsList[0].dataset_id : null)
+        if (activeId) {
+          if (!selectedDatasetIdRef.current) {
+            setSelectedDatasetId(activeId)
+            selectedDatasetIdRef.current = activeId
+          }
+          datasetsApi.getDatasetOverview(activeId)
+            .then((ov) => setDatasetOverview(ov))
+            .catch((e) => console.error("Failed to load dataset overview", e))
+        }
+      }
     } catch {
       setIsOnline(false)
     } finally {
@@ -2704,45 +3389,43 @@ export function IncidentForgeDashboard() {
     }
   }, [])
 
-  
-  useEffect(() => {
-    const handleUpload = async (e: Event) => {
-      const file = (e as CustomEvent).detail as File;
-      setRefreshing(true);
-      try {
-        const formData = new FormData()
-        formData.append("file", file)
-        const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000"
-        const response = await fetch(`${baseUrl}/api/v1/data-assets/upload`, {
-          method: "POST",
-          body: formData,
-        })
-        const data = await response.json()
-        if (response.ok) {
-          const dsId = data.dataset_id || data.assessment?.dataset_id;
-          setSelectedDatasetId(dsId);
-          setDatasetOverview(null);
-          setSimulationFeedback(null);
-          
-          const overviewRes = await fetch(`${baseUrl}/api/v1/data-assets/${dsId}/overview`);
-          if (overviewRes.ok) {
-              setDatasetOverview(await overviewRes.json());
-          }
-          
-          setPage("Dataset Security");
-          fetchLiveTelemetry();
-        } else {
-          alert("Upload failed: " + (data.detail || "Unknown error"));
+  const handleUploadFile = async (file: File) => {
+    setRefreshing(true)
+    try {
+      const data = await datasetsApi.uploadDataset(file)
+      const dsId = data.dataset_id || data.assessment?.asset?.dataset_id
+      if (dsId) {
+        setSelectedDatasetId(dsId)
+        selectedDatasetIdRef.current = dsId
+        setDatasetOverview(null)
+        setSimulationFeedback(null)
+        try {
+          const ov = await datasetsApi.getDatasetOverview(dsId)
+          setDatasetOverview(ov)
+        } catch (e) {
+          console.error("Failed to load overview for uploaded dataset", e)
         }
-      } catch (err) {
-        alert("Upload failed");
-      } finally {
-        setRefreshing(false);
       }
-    };
-    window.addEventListener('dataset-upload', handleUpload);
-    return () => window.removeEventListener('dataset-upload', handleUpload);
-  }, [fetchLiveTelemetry]);
+      setPage("Overview")
+      await fetchLiveTelemetry()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      alert("Upload failed: " + msg)
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
+    const handleUploadEvent = (e: Event) => {
+      const file = (e as CustomEvent).detail as File
+      if (file) {
+        handleUploadFile(file)
+      }
+    }
+    window.addEventListener('dataset-upload', handleUploadEvent)
+    return () => window.removeEventListener('dataset-upload', handleUploadEvent)
+  }, [])
 
   useEffect(() => {
     fetchLiveTelemetry()
@@ -2770,7 +3453,7 @@ export function IncidentForgeDashboard() {
       />
 
       <div className={`${collapsed ? "pl-[68px]" : "pl-[236px]"} transition-all duration-300`}>
-        <Topbar page={page} onCommand={() => setCommandOpen(true)} onRefresh={fetchLiveTelemetry} />
+        <Topbar page={page} onCommand={() => setCommandOpen(true)} onRefresh={fetchLiveTelemetry} onUpload={handleUploadFile} />
         <main className="mx-auto max-w-[1680px] p-3 lg:p-4">
           {refreshing && (
             <div className="fixed right-6 top-20 z-20 flex items-center gap-2 rounded border border-orange-400/20 bg-[#11191d] px-3 py-2 text-[10px] text-orange-300 shadow-xl">
@@ -2782,14 +3465,15 @@ export function IncidentForgeDashboard() {
           {incidentId ? (
             <IncidentWorkspace incidentId={incidentId} close={() => setIncidentId(null)} />
           ) : page === "Overview" ? (
-            <Overview onDatasetSelect={handleDatasetSelect}
+            <Overview
+              datasetOverview={datasetOverview}
+              datasets={datasets}
+              selectedDatasetId={selectedDatasetId}
+              onDatasetSelect={handleDatasetSelect}
+              onNavigate={(p) => setPage(p)}
               openIncident={setIncidentId}
-              alerts={alerts}
-              incidents={incidents}
-              correlations={correlations}
-              cases={cases}
-              isOnline={isOnline}
-              loading={refreshing && alerts.length === 0}
+              onUpload={handleUploadFile}
+              loading={refreshing && !datasetOverview && datasets.length > 0}
             />
           ) : page === "Alerts" ? (
             <AlertsPageView alerts={alerts} loading={refreshing && alerts.length === 0} />
