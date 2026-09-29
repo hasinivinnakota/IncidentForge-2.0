@@ -1,6 +1,27 @@
-# IncidentForge 2.0
+<p align="center">
 
-## Intelligent Security Operations That Learn From Experience
+# ⚡ IncidentForge 2.0
+
+### Intelligent Security Operations That Learn From Experience
+
+**Detect. Recall. Investigate. Resolve. Learn.**
+
+</p>
+
+<p align="center">
+  <strong>AI-Assisted Security Operations + Organizational Memory</strong>
+</p>
+
+<p align="center">
+
+| 🛡️ Detection | 🤖 AI Investigation | 🧠 Hindsight Memory | 📊 ML Risk | 👤 Human Control |
+| :-----------: | :-----------------: | :-----------------: | :--------: | :--------------: |
+
+</p>
+
+---
+
+## 🧭 Overview
 
 **IncidentForge 2.0** is an AI-assisted Security Operations platform that transforms raw security telemetry into structured investigations, risk-aware incidents, explainable analysis, and continuously improving organizational knowledge.
 
@@ -8,24 +29,52 @@ Unlike conventional SOC tools that treat every incident as an isolated event, In
 
 Every resolved investigation can contribute validated knowledge to organizational memory. When a related incident appears in the future, that experience can be recalled and used alongside current evidence.
 
-### The core loop
-
-```text
-┌──────────────────────────────────────────────────────────────┐
-│                        INCIDENTFORGE                         │
-│                                                              │
-│   DETECT → RECALL → INVESTIGATE → RESOLVE → LEARN           │
-│      ↑                                             │         │
-│      └────────────── FUTURE INCIDENTS ────────────┘         │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
-
+> [!IMPORTANT]
 > **IncidentForge doesn't just investigate incidents. It remembers what was learned from them.**
 
 ---
 
-# Overview
+# 🧠 The IncidentForge Learning Loop
+
+```text
+┌───────────────────────────────────────────────────────────────┐
+│                        INCIDENTFORGE                         │
+│                                                               │
+│   DETECT → RECALL → INVESTIGATE → RESOLVE → LEARN            │
+│      ↑                                              │         │
+│      │                                              │         │
+│      └────────────── FUTURE INCIDENTS ─────────────┘         │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+```
+
+### The idea is simple:
+
+**Detect** suspicious activity.
+
+↓
+
+**Recall** relevant organizational experience.
+
+↓
+
+**Investigate** using current evidence and historical context.
+
+↓
+
+**Resolve** with analyst-controlled decisions.
+
+↓
+
+**Learn** from validated outcomes.
+
+↓
+
+**Recall again** when similar incidents appear.
+
+---
+
+# 🌐 Security Operations Overview
 
 Modern security operations generate enormous amounts of telemetry, alerts, indicators, and investigation data.
 
@@ -45,50 +94,75 @@ Security analysts must continuously determine:
 IncidentForge brings these capabilities together into a single investigation workflow.
 
 ```text
-Security Data
-     │
-     ▼
-Schema Detection
-     │
-     ▼
-Normalization
-     │
-     ▼
-Event Generation
-     │
-     ▼
-Detection
-     │
-     ▼
-Correlation
-     │
-     ▼
-Incident Creation
-     │
-     ├───────────────┐
-     ▼               ▼
-ML Risk Score    Hindsight Recall
-     │               │
-     └───────┬───────┘
-             ▼
-      AI Investigation
-             │
-             ▼
-      Analyst Decision
-             │
-             ▼
-         Resolution
-             │
-             ▼
-      Hindsight Retain
-             │
-             ▼
-   Organizational Experience
+                         SECURITY DATA
+                              │
+                              ▼
+                     ┌─────────────────┐
+                     │ Schema Detection │
+                     └────────┬────────┘
+                              │
+                              ▼
+                     ┌─────────────────┐
+                     │  Normalization  │
+                     └────────┬────────┘
+                              │
+                              ▼
+                     ┌─────────────────┐
+                     │ Event Generation│
+                     └────────┬────────┘
+                              │
+                              ▼
+                     ┌─────────────────┐
+                     │    Detection    │
+                     └────────┬────────┘
+                              │
+                              ▼
+                     ┌─────────────────┐
+                     │   Correlation   │
+                     └────────┬────────┘
+                              │
+                              ▼
+                     ┌─────────────────┐
+                     │Incident Creation│
+                     └────────┬────────┘
+                              │
+                    ┌─────────┴─────────┐
+                    ▼                   ▼
+             ┌─────────────┐     ┌──────────────┐
+             │ ML Risk     │     │ Hindsight    │
+             │ Score       │     │ Recall       │
+             └──────┬──────┘     └──────┬───────┘
+                    │                   │
+                    └─────────┬─────────┘
+                              ▼
+                    ┌──────────────────┐
+                    │ AI Investigation │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │ Analyst Decision │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │    Resolution    │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │ Hindsight Retain │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                 ┌─────────────────────────┐
+                 │ Organizational Memory  │
+                 └─────────────────────────┘
 ```
 
 ---
 
-# The Problem
+# ⚠️ The Problem
 
 Traditional security workflows are largely event-driven.
 
@@ -102,14 +176,14 @@ Then another similar alert arrives and the process begins again.
 
 The organization may have already encountered the same:
 
-* attack technique,
-* persistence mechanism,
-* process chain,
-* phishing pattern,
-* indicator,
-* root cause,
-* investigation path,
-* remediation strategy,
+* attack technique
+* persistence mechanism
+* process chain
+* phishing pattern
+* indicator
+* root cause
+* investigation path
+* remediation strategy
 
 but that experience is often difficult to bring into the next investigation at the right moment.
 
@@ -117,56 +191,58 @@ IncidentForge treats previous investigations as a source of **operational knowle
 
 Instead of allowing valuable incident experience to disappear after resolution, the system can transform validated investigation outcomes into reusable organizational memory.
 
+> [!NOTE]
+> The objective is not simply to store more security data.
+>
+> **The objective is to make previous security experience useful during future investigations.**
+
 ---
 
-# The IncidentForge Approach
+# ⚙️ The IncidentForge Approach
 
 IncidentForge combines five major capabilities:
 
-### 1. Security Data Processing
-
-Security datasets are inspected, normalized, and transformed into structured events.
-
-### 2. Detection & Correlation
-
-Security activity is evaluated using detection logic and correlation workflows to transform individual events into meaningful incidents.
-
-### 3. ML-Based Risk Scoring
-
-A machine-learning pipeline provides an additional risk signal for security activity.
-
-### 4. AI Investigation
-
-The investigator combines current evidence with contextual information to produce structured analysis and recommendations.
-
-### 5. Hindsight Organizational Memory
-
-Previous validated investigations can be retained and recalled so that future investigations benefit from accumulated experience.
+| Capability                             | Purpose                                                                                                           |
+| :------------------------------------- | :---------------------------------------------------------------------------------------------------------------- |
+| 🔄 **Security Data Processing**        | Inspect, normalize, and transform security datasets into structured events.                                       |
+| 🎯 **Detection & Correlation**         | Transform individual events into meaningful security incidents.                                                   |
+| 📊 **ML-Based Risk Scoring**           | Provide an additional machine-learning risk signal for security activity.                                         |
+| 🤖 **AI Investigation**                | Combine current evidence with contextual information to produce structured analysis and recommendations.          |
+| 🧠 **Hindsight Organizational Memory** | Retain and recall previous validated investigations so future investigations benefit from accumulated experience. |
 
 These capabilities are connected rather than operating as isolated features.
 
 ---
 
-# Organizational Memory
+# 🧠 Organizational Memory
 
 The defining capability of IncidentForge is its use of **Hindsight as an operational memory layer**.
 
-The system distinguishes between:
-
 ```text
-Current Evidence
-        +
-Historical Experience
-        ↓
-     Investigation
-        ↓
-    Analyst Review
-        ↓
-      Resolution
-        ↓
-   Validated Learning
-        ↓
- Organizational Memory
+             CURRENT EVIDENCE
+                    │
+                    +
+                    │
+          HISTORICAL EXPERIENCE
+                    │
+                    ▼
+              INVESTIGATION
+                    │
+                    ▼
+              ANALYST REVIEW
+                    │
+                    ▼
+                RESOLUTION
+                    │
+                    ▼
+             VALIDATED LEARNING
+                    │
+                    ▼
+          ORGANIZATIONAL MEMORY
+                    │
+                    │
+                    ▼
+             FUTURE INCIDENTS
 ```
 
 The objective is not to store every raw telemetry record as memory.
@@ -188,13 +264,11 @@ This gives organizational memory a clear operational purpose.
 
 ---
 
-# Memory Lifecycle
+# 🔁 Memory Lifecycle
 
-## Retain
+## 01 · Retain
 
 After an investigation has been resolved and validated, useful knowledge can be retained.
-
-Conceptually:
 
 ```text
 Incident
@@ -210,7 +284,9 @@ Lessons Learned
 Hindsight Retain
 ```
 
-## Recall
+---
+
+## 02 · Recall
 
 When a new incident is investigated, relevant historical experience can be retrieved.
 
@@ -224,7 +300,9 @@ Hindsight Recall
 Relevant Historical Experience
 ```
 
-## Investigate
+---
+
+## 03 · Investigate
 
 The recalled context is presented alongside current evidence.
 
@@ -240,14 +318,16 @@ The recalled context is presented alongside current evidence.
 └──────────┬──────────┘
            │
            ▼
-   AI INVESTIGATION
+   ┌────────────────┐
+   │ AI INVESTIGATION│
+   └────────────────┘
 ```
 
-## Learn
+---
+
+## 04 · Learn
 
 The investigation outcome can then become part of the organization's future experience.
-
-This creates a continuous learning cycle:
 
 ```text
 RECALL
@@ -261,9 +341,11 @@ LEARN
 RECALL AGAIN
 ```
 
+This creates a continuous learning cycle between historical experience and future investigations.
+
 ---
 
-# Example: Learning From a Previous Incident
+# 🧪 Example: Learning From a Previous Incident
 
 Consider an investigation involving:
 
@@ -306,64 +388,70 @@ The historical information does not replace current evidence.
 
 It provides additional context for the investigation.
 
+> [!TIP]
+> **Memory provides context. Current evidence remains the foundation.**
+
 ---
 
-# Memory Trace
+# 🔎 Memory Trace
 
 IncidentForge is designed to make historical influence visible.
 
 An investigation can expose information such as:
 
 ```text
-HINDSIGHT MEMORY
-────────────────────────────────────────
-
-Relevant historical incidents recalled: 2
-
-INC-0871
-PowerShell Persistence
-
-Resolution:
-Scheduled task removal
-
-Lesson:
-Inspect persistence mechanisms early
-
-
-INC-0914
-Malicious Attachment
-
-Resolution:
-Endpoint isolation + credential reset
-
-Lesson:
-Review parent-child process relationships
-
-
-────────────────────────────────────────
-
-Historical context used for:
-
-✓ Investigation hypothesis
-✓ Investigation steps
-✓ Remediation guidance
+╔══════════════════════════════════════════════════╗
+║                HINDSIGHT MEMORY                  ║
+╠══════════════════════════════════════════════════╣
+║                                                  ║
+║ Relevant historical incidents recalled: 2        ║
+║                                                  ║
+║ INC-0871                                         ║
+║ PowerShell Persistence                           ║
+║                                                  ║
+║ Resolution:                                      ║
+║ Scheduled task removal                           ║
+║                                                  ║
+║ Lesson:                                          ║
+║ Inspect persistence mechanisms early             ║
+║                                                  ║
+║ ──────────────────────────────────────────────── ║
+║                                                  ║
+║ INC-0914                                         ║
+║ Malicious Attachment                             ║
+║                                                  ║
+║ Resolution:                                      ║
+║ Endpoint isolation + credential reset            ║
+║                                                  ║
+║ Lesson:                                          ║
+║ Review parent-child process relationships        ║
+║                                                  ║
+║ ──────────────────────────────────────────────── ║
+║                                                  ║
+║ Historical context used for:                     ║
+║                                                  ║
+║ ✓ Investigation hypothesis                       ║
+║ ✓ Investigation steps                            ║
+║ ✓ Remediation guidance                           ║
+║                                                  ║
+╚══════════════════════════════════════════════════╝
 ```
 
 This creates an explicit relationship between:
 
 ```text
 Historical Memory
-      ↓
+       ↓
 Retrieved Context
-      ↓
+       ↓
 Investigation
-      ↓
+       ↓
 Recommendation
 ```
 
 ---
 
-# No Forced Memory
+# 🚫 No Forced Memory
 
 Historical memory should not be injected into an investigation simply because it exists.
 
@@ -389,62 +477,34 @@ This keeps historical context relevant rather than forcing unrelated memories in
 
 ---
 
-# Evidence-Aware AI Investigation
+# 🔍 Evidence-Aware AI Investigation
 
 IncidentForge separates different information categories so that an analyst can distinguish evidence from interpretation.
 
-## Observed
-
-Directly supported by current telemetry.
-
-```text
-OBSERVED
-
-A PowerShell process executed on the endpoint.
-```
-
-## Historical Context
-
-Information retrieved from previous investigations.
-
-```text
-HISTORICAL CONTEXT
-
-A similar PowerShell persistence pattern
-was identified in a previous incident.
-```
-
-## Inferred
-
-Reasoning based on available evidence and historical context.
-
-```text
-INFERRED
-
-The current activity warrants investigation
-of scheduled-task persistence.
-```
-
-## Recommended
-
-Suggested next steps for analyst review.
-
-```text
-RECOMMENDED
-
-Inspect scheduled-task creation events and
-correlate them with the PowerShell execution.
-```
+| Category                  | Meaning                                                       | Example                                                                                  |
+| :------------------------ | :------------------------------------------------------------ | :--------------------------------------------------------------------------------------- |
+| 🟢 **OBSERVED**           | Directly supported by current telemetry.                      | A PowerShell process executed on the endpoint.                                           |
+| 🔵 **HISTORICAL CONTEXT** | Information retrieved from previous investigations.           | A similar PowerShell persistence pattern was identified in a previous incident.          |
+| 🟡 **INFERRED**           | Reasoning based on available evidence and historical context. | The current activity warrants investigation of scheduled-task persistence.               |
+| 🟣 **RECOMMENDED**        | Suggested next steps for analyst review.                      | Inspect scheduled-task creation events and correlate them with the PowerShell execution. |
 
 This distinction provides a structured path from:
 
-**evidence → context → reasoning → recommendation**
+```text
+EVIDENCE
+   ↓
+CONTEXT
+   ↓
+REASONING
+   ↓
+RECOMMENDATION
+```
 
 without presenting every AI-generated statement as an observed fact.
 
 ---
 
-# Security Data Pipeline
+# 🔄 Security Data Pipeline
 
 IncidentForge processes security data through a structured pipeline.
 
@@ -494,7 +554,7 @@ This explicit pipeline makes data movement and processing stages easier to under
 
 ---
 
-# Detection & Correlation
+# 🎯 Detection & Correlation
 
 IncidentForge transforms individual security events into higher-level incidents.
 
@@ -514,7 +574,7 @@ This allows the investigation layer to reason about an incident rather than trea
 
 ---
 
-# Machine Learning Risk Scoring
+# 📊 Machine Learning Risk Scoring
 
 IncidentForge includes a machine-learning pipeline based on the **TON_IoT Network Dataset**.
 
@@ -538,27 +598,28 @@ Risk Scoring
 
 ## Baseline Evaluation
 
-| Metric    | Result |
-| --------- | -----: |
-| Precision | 0.9728 |
-| Recall    | 0.9450 |
-| F1        | 0.9587 |
-| ROC-AUC   | 0.9843 |
-| PR-AUC    | 0.9943 |
+| Metric        |     Result |
+| :------------ | ---------: |
+| **Precision** | **0.9728** |
+| **Recall**    | **0.9450** |
+| **F1**        | **0.9587** |
+| **ROC-AUC**   | **0.9843** |
+| **PR-AUC**    | **0.9943** |
 
-These results describe the current baseline evaluation configuration and should be interpreted within the documented dataset, preprocessing, split, and evaluation methodology.
+> [!NOTE]
+> These results describe the current baseline evaluation configuration and should be interpreted within the documented dataset, preprocessing, split, and evaluation methodology.
 
 The ML component provides an additional risk signal; it is not intended to replace the broader detection, correlation, and analyst investigation workflow.
 
 ---
 
-# Explainability & Provenance
+# 🧾 Explainability & Provenance
 
 IncidentForge is designed around traceable system outputs.
 
 Important values should have an understandable origin.
 
-## Incident Counts
+### 📌 Incident Counts
 
 ```text
 Incident Count
@@ -574,7 +635,7 @@ Correlation
 Incident Records
 ```
 
-## ML Risk
+### 📌 ML Risk
 
 ```text
 Risk Score
@@ -588,7 +649,7 @@ Model
 Prediction
 ```
 
-## Investigation Recommendations
+### 📌 Investigation Recommendations
 
 ```text
 Recommendation
@@ -604,7 +665,7 @@ This allows system behavior to be investigated rather than treating the dashboar
 
 ---
 
-# Responsible AI
+# 🤖 Responsible AI
 
 IncidentForge is designed around analyst-controlled security operations.
 
@@ -620,27 +681,28 @@ The AI layer is intended to:
 The analyst remains responsible for consequential decisions.
 
 ```text
-                 AI
-                  │
-       ┌──────────┼──────────┐
-       │          │          │
-   Investigate  Explain  Recommend
-       │          │          │
-       └──────────┼──────────┘
-                  ▼
-            HUMAN ANALYST
-                  │
-                  ▼
-              DECISION
+                     AI
+                      │
+          ┌───────────┼───────────┐
+          │           │           │
+          ▼           ▼           ▼
+     Investigate    Explain    Recommend
+          │           │           │
+          └───────────┼───────────┘
+                      ▼
+                HUMAN ANALYST
+                      │
+                      ▼
+                   DECISION
 ```
 
-The core principle is:
-
-> **AI investigates. Memory informs. Humans decide.**
+> [!IMPORTANT]
+>
+> ## AI investigates. Memory informs. Humans decide.
 
 ---
 
-# Response Governance
+# 🛡️ Response Governance
 
 IncidentForge emphasizes controlled response rather than unrestricted autonomous execution.
 
@@ -657,7 +719,7 @@ This allows the investigation system to provide actionable recommendations while
 
 ---
 
-# Memory Integrity
+# 🧬 Memory Integrity
 
 Organizational memory becomes valuable only when it remains trustworthy.
 
@@ -681,11 +743,11 @@ Organizational Memory
 
 The investigator should not automatically convert unsupported speculation into trusted organizational knowledge.
 
-Memory is intended to represent **validated operational experience**, not simply generated text.
+> **Memory represents validated operational experience, not simply generated text.**
 
 ---
 
-# Failure Handling
+# 🧯 Failure Handling
 
 Security systems must remain understandable when individual components fail.
 
@@ -703,28 +765,28 @@ IncidentForge accounts for failure conditions including:
 * Model unavailable
 * No detections
 
-For example:
+### Graceful degradation
 
 ```text
-Hindsight Service
-      │
-      X
-      │
-      ▼
-Memory Unavailable
-      │
-      ▼
-Investigation Continues
-      │
-      ▼
-Memory Status: DEGRADED
+              HINDSIGHT SERVICE
+                      │
+                      X
+                      │
+                      ▼
+              MEMORY UNAVAILABLE
+                      │
+                      ▼
+             INVESTIGATION CONTINUES
+                      │
+                      ▼
+             MEMORY STATUS: DEGRADED
 ```
 
 The memory layer is intended to enhance the security workflow without becoming a single point of failure for the entire investigation platform.
 
 ---
 
-# Architecture
+# 🏗️ Architecture
 
 ```text
                          SECURITY DATA
@@ -754,8 +816,8 @@ The memory layer is intended to enhance the security workflow without becoming a
                   │                     │
                   ▼                     ▼
            ┌─────────────┐       ┌─────────────┐
-           │ ML Risk      │       │  Hindsight  │
-           │ Scoring      │       │   Recall    │
+           │ ML Risk     │       │  Hindsight  │
+           │ Scoring     │       │   Recall    │
            └──────┬──────┘       └──────┬──────┘
                   │                     │
                   └──────────┬──────────┘
@@ -780,16 +842,17 @@ The memory layer is intended to enhance the security workflow without becoming a
                     └────────┬─────────┘
                              │
                              ▼
-                    ORGANIZATIONAL MEMORY
-                             │
-                             └─────────────►
-                                  FUTURE
-                                INCIDENTS
+                 ┌────────────────────────┐
+                 │ ORGANIZATIONAL MEMORY  │
+                 └────────────┬───────────┘
+                              │
+                              ▼
+                       FUTURE INCIDENTS
 ```
 
 ---
 
-# Project Structure
+# 📁 Project Structure
 
 ```text
 IncidentForge-2.0/
@@ -837,9 +900,7 @@ The project is organized around distinct responsibilities including:
 
 ---
 
-# Core Investigation Workflow
-
-The complete IncidentForge workflow is:
+# 🔬 Core Investigation Workflow
 
 ```text
 01  Upload Security Data
@@ -873,7 +934,7 @@ The complete IncidentForge workflow is:
 
 ---
 
-# A Security System With Memory
+# 🧠 A Security System With Memory
 
 The difference can be represented simply.
 
@@ -915,94 +976,49 @@ Resolution
 New Learning
 ```
 
-The system creates a feedback loop between **what the organization has experienced** and **what it investigates next**.
+> **The system creates a feedback loop between what the organization has experienced and what it investigates next.**
 
 ---
 
-# Design Principles
+# 🧩 Design Principles
 
-## Evidence First
-
-Current security evidence remains the foundation of every investigation.
-
-## Memory With Purpose
-
-The memory layer focuses on useful investigation experience rather than indiscriminately storing raw data.
-
-## Explainable Context
-
-Historical information and current evidence remain distinguishable.
-
-## Human Control
-
-AI provides analysis and recommendations while analysts remain responsible for consequential decisions.
-
-## Graceful Degradation
-
-Failure of an optional service should not unnecessarily break the complete investigation workflow.
-
-## Reproducibility
-
-Data processing, model evaluation, and system behavior should be reproducible from documented workflows.
-
-## Continuous Learning
-
-Resolved incidents can contribute to future organizational knowledge.
+| Principle                   | Meaning                                                                                                    |
+| :-------------------------- | :--------------------------------------------------------------------------------------------------------- |
+| 🔍 **Evidence First**       | Current security evidence remains the foundation of every investigation.                                   |
+| 🧠 **Memory With Purpose**  | The memory layer focuses on useful investigation experience rather than indiscriminately storing raw data. |
+| 🧾 **Explainable Context**  | Historical information and current evidence remain distinguishable.                                        |
+| 👤 **Human Control**        | AI provides analysis and recommendations while analysts remain responsible for consequential decisions.    |
+| 🧯 **Graceful Degradation** | Failure of an optional service should not unnecessarily break the complete investigation workflow.         |
+| 🔁 **Reproducibility**      | Data processing, model evaluation, and system behavior should be reproducible from documented workflows.   |
+| 🧬 **Continuous Learning**  | Resolved incidents can contribute to future organizational knowledge.                                      |
 
 ---
 
-# Documentation
+# 📚 Documentation
 
 Detailed technical documentation is organized under `docs/`.
 
-### Architecture
-
-`docs/architecture.md`
-
-System components, boundaries, and data flow.
-
-### Hindsight
-
-`docs/hindsight.md`
-
-Memory architecture, recall, retention, and integration.
-
-### Memory Model
-
-`docs/memory-model.md`
-
-What constitutes organizational knowledge and how investigation experience is represented.
-
-### Dataset Pipeline
-
-`docs/dataset-pipeline.md`
-
-Dataset ingestion, normalization, processing, and event generation.
-
-### Demo
-
-`docs/demo.md`
-
-End-to-end workflow for running the system.
-
-### Evaluation
-
-`docs/evaluation.md`
-
-Machine-learning and system evaluation methodology.
+| Document                      | Description                                                                                |
+| :---------------------------- | :----------------------------------------------------------------------------------------- |
+| 🏗️ `docs/architecture.md`    | System components, boundaries, and data flow.                                              |
+| 🧠 `docs/hindsight.md`        | Memory architecture, recall, retention, and integration.                                   |
+| 🧬 `docs/memory-model.md`     | What constitutes organizational knowledge and how investigation experience is represented. |
+| 🔄 `docs/dataset-pipeline.md` | Dataset ingestion, normalization, processing, and event generation.                        |
+| 🎬 `docs/demo.md`             | End-to-end workflow for running the system.                                                |
+| 📊 `docs/evaluation.md`       | Machine-learning and system evaluation methodology.                                        |
 
 ---
 
-# Quick Start
+# 🚀 Quick Start
 
-## Clone the repository
+## 01 · Clone the repository
 
 ```bash
 git clone https://github.com/hasinivinnakota/IncidentForge-2.0.git
 cd IncidentForge-2.0
 ```
 
-## Configure the environment
+## 02 · Configure the environment
 
 ```bash
 cp .env.example .env
@@ -1010,17 +1026,17 @@ cp .env.example .env
 
 Configure the required services and credentials according to the project documentation.
 
-## Install dependencies
+## 03 · Install dependencies
 
 ```bash
 pip install -e .
 ```
 
-## Run the application
+## 04 · Run the application
 
 Use the documented application startup command for the current project configuration.
 
-## Run tests
+## 05 · Run tests
 
 ```bash
 pytest
@@ -1028,81 +1044,101 @@ pytest
 
 ---
 
-# Development
+# 🛠️ Development
 
 IncidentForge is structured so that individual subsystems can be developed and tested independently.
 
-Typical development areas include:
-
 ```text
-Data Ingestion
-     │
-     ├── Schema Detection
-     └── Normalization
-
-Detection
-     │
-     ├── Rules
-     └── Event Analysis
-
-Correlation
-     │
-     └── Incident Construction
-
-ML
-     │
-     ├── Feature Engineering
-     ├── Training
-     └── Risk Scoring
-
-AI Investigation
-     │
-     ├── Evidence
-     ├── Historical Context
-     └── Recommendations
-
-Hindsight
-     │
-     ├── Retain
-     ├── Recall
-     └── Organizational Memory
-
-Response
-     │
-     ├── Governance
-     ├── Approval
-     └── Audit
+┌──────────────────────────────┐
+│       DATA INGESTION         │
+├──────────────────────────────┤
+│ Schema Detection             │
+│ Normalization                │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│          DETECTION           │
+├──────────────────────────────┤
+│ Rules                        │
+│ Event Analysis               │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│         CORRELATION          │
+├──────────────────────────────┤
+│ Incident Construction        │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│             ML               │
+├──────────────────────────────┤
+│ Feature Engineering          │
+│ Training                     │
+│ Risk Scoring                 │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│      AI INVESTIGATION        │
+├──────────────────────────────┤
+│ Evidence                     │
+│ Historical Context           │
+│ Recommendations              │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│          HINDSIGHT           │
+├──────────────────────────────┤
+│ Retain                       │
+│ Recall                       │
+│ Organizational Memory        │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│           RESPONSE           │
+├──────────────────────────────┤
+│ Governance                   │
+│ Approval                     │
+│ Audit                        │
+└──────────────────────────────┘
 ```
 
 ---
 
-# Current Capabilities
+# ✨ Current Capabilities
 
 IncidentForge brings together:
 
-* Security dataset ingestion
-* Schema detection
-* Data normalization
-* Event generation
-* Detection engineering
-* Event correlation
-* Incident creation
-* ML-based risk scoring
-* AI-assisted investigation
-* Hindsight-based historical recall
-* Organizational memory
-* Memory-aware recommendations
-* Evidence-aware investigation
-* Analyst-controlled response
-* Response governance
-* Auditability
-* Failure handling
-* Automated testing
-* Technical documentation
+|     | Capability                        |
+| :-: | :-------------------------------- |
+| 🗂️ | Security dataset ingestion        |
+|  🔎 | Schema detection                  |
+|  🔄 | Data normalization                |
+|  ⚡  | Event generation                  |
+|  🎯 | Detection engineering             |
+|  🔗 | Event correlation                 |
+|  🚨 | Incident creation                 |
+|  📊 | ML-based risk scoring             |
+|  🤖 | AI-assisted investigation         |
+|  🧠 | Hindsight-based historical recall |
+|  🧬 | Organizational memory             |
+|  💡 | Memory-aware recommendations      |
+|  🔍 | Evidence-aware investigation      |
+|  👤 | Analyst-controlled response       |
+| 🛡️ | Response governance               |
+|  🧾 | Auditability                      |
+|  🧯 | Failure handling                  |
+|  🧪 | Automated testing                 |
+|  📚 | Technical documentation           |
 
 ---
 
-# Future Direction
+# 🚀 Future Direction
 
 IncidentForge's architecture provides a foundation for progressively richer organizational security intelligence.
 
@@ -1121,25 +1157,25 @@ Potential future directions include:
 
 The long-term objective is not simply to build a smarter alert dashboard.
 
-It is to build a security system that can **accumulate, preserve, and reuse organizational experience.**
+> **It is to build a security system that can accumulate, preserve, and reuse organizational experience.**
 
 ---
 
-# Philosophy
+# 💭 Philosophy
 
 Security teams continuously learn.
 
 Every investigation produces information about:
 
-* attacker behavior,
-* infrastructure,
-* detection patterns,
-* investigation techniques,
-* root causes,
-* remediation,
-* mistakes,
-* successful decisions,
-* and lessons worth remembering.
+* attacker behavior
+* infrastructure
+* detection patterns
+* investigation techniques
+* root causes
+* remediation
+* mistakes
+* successful decisions
+* lessons worth remembering
 
 That knowledge should not disappear when an incident is closed.
 
@@ -1158,7 +1194,7 @@ IncidentForge turns the incident lifecycle into a learning lifecycle:
                           ▼
                    LESSONS LEARNED
                           ▼
-                 ORGANIZATIONAL MEMORY
+                ORGANIZATIONAL MEMORY
                           │
                           │
                           ▼
@@ -1177,11 +1213,33 @@ IncidentForge turns the incident lifecycle into a learning lifecycle:
                                           │
                                           ▼
                                    NEW KNOWLEDGE
+                                          │
+                                          └───────►
+                                          
 ```
 
-# IncidentForge 2.0
+---
+
+# ⚡ IncidentForge 2.0
+
+<p align="center">
 
 ## **Security Operations That Learn From Experience.**
 
-**Detect. Recall. Investigate. Resolve. Learn.**
+### Detect. Recall. Investigate. Resolve. Learn.
+
+</p>
+
+<p align="center">
+
+**AI investigates. Memory informs. Humans decide.**
+
+</p>
+
+---
+
+<p align="center">
+  <sub>IncidentForge 2.0 — Turning incident response into organizational learning.</sub>
+</p>
+
 
