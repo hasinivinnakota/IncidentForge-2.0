@@ -38,12 +38,12 @@ Every resolved investigation can contribute validated knowledge to organizationa
 
 ```text
 ┌───────────────────────────────────────────────────────────────┐
-│                        INCIDENTFORGE                         │
+│                        INCIDENTFORGE                          │
 │                                                               │
-│   DETECT → RECALL → INVESTIGATE → RESOLVE → LEARN            │
-│      ↑                                              │         │
-│      │                                              │         │
-│      └────────────── FUTURE INCIDENTS ─────────────┘         │
+│   DETECT → RECALL → INVESTIGATE → RESOLVE → LEARN             │
+│      ↑                                             │          │
+│      │                                             │          │
+│      └────────────── FUTURE INCIDENTS ─────────────┘          │
 │                                                               │
 └───────────────────────────────────────────────────────────────┘
 ```
@@ -98,7 +98,7 @@ IncidentForge brings these capabilities together into a single investigation wor
                               │
                               ▼
                      ┌─────────────────┐
-                     │ Schema Detection │
+                     │ Schema Detection│
                      └────────┬────────┘
                               │
                               ▼
@@ -156,7 +156,7 @@ IncidentForge brings these capabilities together into a single investigation wor
                              │
                              ▼
                  ┌─────────────────────────┐
-                 │ Organizational Memory  │
+                 │ Organizational Memory   │
                  └─────────────────────────┘
 ```
 
@@ -319,7 +319,7 @@ The recalled context is presented alongside current evidence.
            │
            ▼
    ┌────────────────┐
-   │ AI INVESTIGATION│
+   │AI INVESTIGATION│
    └────────────────┘
 ```
 
@@ -793,8 +793,8 @@ The memory layer is intended to enhance the security workflow without becoming a
                               │
                               ▼
                     ┌──────────────────┐
-                    │ Data Processing   │
-                    │ & Normalization   │
+                    │ Data Processing  │
+                    │ & Normalization  │
                     └────────┬─────────┘
                              │
                              ▼
@@ -1116,10 +1116,10 @@ IncidentForge brings together:
 
 |     | Capability                        |
 | :-: | :-------------------------------- |
-| 🗂️ | Security dataset ingestion        |
+| 🗂️ | Security dataset ingestion         |
 |  🔎 | Schema detection                  |
 |  🔄 | Data normalization                |
-|  ⚡  | Event generation                  |
+|  ⚡  | Event generation                 |
 |  🎯 | Detection engineering             |
 |  🔗 | Event correlation                 |
 |  🚨 | Incident creation                 |
@@ -1130,7 +1130,7 @@ IncidentForge brings together:
 |  💡 | Memory-aware recommendations      |
 |  🔍 | Evidence-aware investigation      |
 |  👤 | Analyst-controlled response       |
-| 🛡️ | Response governance               |
+| 🛡️ | Response governance                |
 |  🧾 | Auditability                      |
 |  🧯 | Failure handling                  |
 |  🧪 | Automated testing                 |
