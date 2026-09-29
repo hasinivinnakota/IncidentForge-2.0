@@ -1,0 +1,173 @@
+services:
+  wazuh.indexer:
+    image: wazuh/wazuh-indexer:${WAZUH_VERSION:-4.9.0}
+    container_name: threatpilot-wazuh-indexer
+    hostname: wazuh.indexer
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9200:9200"
+    environment:
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+      - "cluster.name=threatpilot-cluster"
+      - "node.name=wazuh.indexer"
+      - "discovery.type=single-node"
+      - "DISABLE_INSTALL_DEMO_CONFIG=true"
+      - "DISABLE_SECURITY_PLUGIN=false"
+      - "INDEXER_USERNAME=${INDEXER_USERNAME:-admin}"
+      - "INDEXER_PASSWORD=${INDEXER_PASSWORD:?INDEXER_PASSWORD must be set in .env}"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1536M
+        reservations:
+          memory: 1024M
+    volumes:
+      - wazuh_indexer_data:/usr/share/wazuh-indexer/data
+      - ./config/wazuh_indexer/opensearch.yml:/usr/share/wazuh-indexer/opensearch.yml:ro
+      - ./config/certs/root-ca.pem:/usr/share/wazuh-indexer/certs/root-ca.pem:ro
+      - ./config/certs/root-ca-key.pem:/usr/share/wazuh-indexer/certs/root-ca-key.pem:ro
+      - ./config/certs/indexer.pem:/usr/share/wazuh-indexer/certs/indexer.pem:ro
+      - ./config/certs/indexer-key.pem:/usr/share/wazuh-indexer/certs/indexer-key.pem:ro
+      - ./config/certs/admin.pem:/usr/share/wazuh-indexer/certs/admin.pem:ro
+      - ./config/certs/admin-key.pem:/usr/share/wazuh-indexer/certs/admin-key.pem:ro
+    networks:
+      - threatpilot_wazuh_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -k -u ${INDEXER_USERNAME:-admin}:${INDEXER_PASSWORD:?INDEXER_PASSWORD must be set in .env} https://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  wazuh.manager:
+    image: wazuh/wazuh-manager:${WAZUH_VERSION:-4.9.0}
+    container_name: threatpilot-wazuh-manager
+    hostname: wazuh.manager
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1514:1514/tcp"
+      - "127.0.0.1:1515:1515/tcp"
+      - "127.0.0.1:514:514/udp"
+      - "127.0.0.1:55000:55000/tcp"
+    environment:
+      - "INDEXER_URL=https://wazuh.indexer:9200"
+      - "INDEXER_USERNAME=${INDEXER_USERNAME:-admin}"
+      - "INDEXER_PASSWORD=${INDEXER_PASSWORD:?INDEXER_PASSWORD must be set in .env}"
+      - "FILEBEAT_SSL_VERIFICATION_MODE=full"
+      - "SSL_CERTIFICATE_AUTHORITIES=/etc/ssl/root-ca.pem"
+      - "SSL_CERTIFICATE=/etc/ssl/filebeat.pem"
+      - "SSL_KEY=/etc/ssl/filebeat-key.pem"
+      - "API_USERNAME=${API_USERNAME:-wazuh-wui}"
+      - "API_PASSWORD=${API_PASSWORD:?API_PASSWORD must be set in .env}"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+        reservations:
+          memory: 512M
+    volumes:
+      - wazuh_manager_data:/var/ossec/data
+      - wazuh_manager_etc:/var/ossec/etc
+      - wazuh_manager_logs:/var/ossec/logs
+      - wazuh_manager_queue:/var/ossec/queue
+      - wazuh_manager_integrations:/var/ossec/integrations
+      - wazuh_manager_active_response:/var/ossec/active-response/bin
+      - ./config/certs/root-ca.pem:/etc/ssl/root-ca.pem:ro
+      - ./config/certs/filebeat.pem:/etc/ssl/filebeat.pem:ro
+      - ./config/certs/filebeat-key.pem:/etc/ssl/filebeat-key.pem:ro
+    networks:
+      - threatpilot_wazuh_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    depends_on:
+      wazuh.indexer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "/var/ossec/bin/wazuh-control status | grep -q 'is running'"]
+      interval: 20s
+      timeout: 10s
+      retries: 4
+      start_period: 30s
+
+  wazuh.dashboard:
+    image: wazuh/wazuh-dashboard:${WAZUH_VERSION:-4.9.0}
+    container_name: threatpilot-wazuh-dashboard
+    hostname: wazuh.dashboard
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:443:5601/tcp"
+    environment:
+      - "INDEXER_URL=https://wazuh.indexer:9200"
+      - "INDEXER_USERNAME=${INDEXER_USERNAME:-admin}"
+      - "INDEXER_PASSWORD=${INDEXER_PASSWORD:?INDEXER_PASSWORD must be set in .env}"
+      - "DASHBOARD_USERNAME=${INDEXER_USERNAME:-admin}"
+      - "DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:?DASHBOARD_PASSWORD must be set in .env}"
+      - "WAZUH_API_URL=https://wazuh.manager:55000"
+      - "API_USERNAME=${API_USERNAME:-wazuh-wui}"
+      - "API_PASSWORD=${API_PASSWORD:?API_PASSWORD must be set in .env}"
+      - "OPENSEARCH_SECURITY_MULTITENANCY_ENABLED=true"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          memory: 256M
+    volumes:
+      - wazuh_dashboard_config:/usr/share/wazuh-dashboard/data/wazuh/config
+      - ./config/wazuh_dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
+      - ./config/certs/root-ca.pem:/usr/share/wazuh-dashboard/certs/root-ca.pem:ro
+      - ./config/certs/dashboard.pem:/usr/share/wazuh-dashboard/certs/dashboard.pem:ro
+      - ./config/certs/dashboard-key.pem:/usr/share/wazuh-dashboard/certs/dashboard-key.pem:ro
+    networks:
+      - threatpilot_wazuh_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    depends_on:
+      wazuh.indexer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -k -I https://localhost:5601 | grep -q 'HTTP/1.1'"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  wazuh_indexer_data:
+    name: threatpilot_wazuh_indexer_data
+  wazuh_manager_data:
+    name: threatpilot_wazuh_manager_data
+  wazuh_manager_etc:
+    name: threatpilot_wazuh_manager_etc
+  wazuh_manager_logs:
+    name: threatpilot_wazuh_manager_logs
+  wazuh_manager_queue:
+    name: threatpilot_wazuh_manager_queue
+  wazuh_manager_integrations:
+    name: threatpilot_wazuh_manager_integrations
+  wazuh_manager_active_response:
+    name: threatpilot_wazuh_manager_active_response
+  wazuh_dashboard_config:
+    name: threatpilot_wazuh_dashboard_config
+
+networks:
+  threatpilot_wazuh_net:
+    name: threatpilot_wazuh_net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

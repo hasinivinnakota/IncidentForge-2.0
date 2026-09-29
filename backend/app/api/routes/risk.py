@@ -61,3 +61,16 @@ def get_risk_assessment_by_id(
             detail=f"Risk assessment {assessment_id} not found",
         )
     return _to_domain_assessment(record)
+
+
+@router.get("/api/v1/ml/artifacts")
+def get_ml_artifacts() -> dict:
+    """Return the current model metadata artifact (training session + evaluation audit trail)."""
+    import pathlib, json as _json
+    artifact_path = pathlib.Path(__file__).parent.parent.parent / "ml" / "artifacts" / "model_metadata_v1.json"
+    if not artifact_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Model metadata artifact not found",
+        )
+    return _json.loads(artifact_path.read_text())

@@ -1,0 +1,176 @@
+# ============================================
+# IncidentForge — .gitignore
+# AI-Assisted SOC Investigation Platform
+# ============================================
+
+# ==========================================
+# Environment & Secrets
+# ==========================================
+.env
+.env.local
+.env.*.local
+*.pem
+!infrastructure/docker/config/certs/root-ca.pem
+*.key
+*.crt
+*.srl
+*.p12
+secrets/
+credentials/
+
+# ==========================================
+# Python
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+*.whl
+pip-log.txt
+pip-delete-this-directory.txt
+.Python
+develop-eggs/
+/lib/
+/lib64/
+parts/
+sdist/
+var/
+wheels/
+*.manifest
+*.spec
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# ==========================================
+# Node.js / Dashboard
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dashboard/dist/
+dashboard/build/
+dashboard-vite-backup/
+
+# ==========================================
+# ML / Data Science
+# ==========================================
+ml/models/*.pkl
+ml/models/*.joblib
+ml/models/*.h5
+ml/models/*.pt
+ml/models/*.onnx
+*.model
+*.pickle
+datasets/raw/
+datasets/large/
+*.csv
+!datasets/sample-alerts/*.csv
+*.parquet
+*.feather
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_metadata/
+
+# ==========================================
+# Docker
+# ==========================================
+docker-compose.override.yml
+.docker/
+
+# ==========================================
+# Wazuh Data (generated at runtime)
+# ==========================================
+infrastructure/docker/wazuh-manager/data/
+infrastructure/docker/wazuh-indexer/data/
+infrastructure/docker/wazuh-dashboard/data/
+wazuh-data/
+ossec-logs/
+
+# Application databases
+backend/data/
+*.sqlite
+*.sqlite3
+*.db
+*.db.backup
+*.backup
+
+# ==========================================
+# Logs
+# ==========================================
+logs/
+*.log
+*.log.*
+log/
+
+# ==========================================
+# Security / Telemetry Data
+# ==========================================
+# Never commit real security telemetry
+alerts-export/
+sysmon-logs/
+event-logs/
+pcap/
+*.pcap
+*.evtx
+*.etl
+
+# ==========================================
+# IDE & Editor
+# ==========================================
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ==========================================
+# OS Files
+# ==========================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ==========================================
+# Temporary & Cache
+# ==========================================
+tmp/
+temp/
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# ==========================================
+# Misc
+# ==========================================
+*.bak
+*.tmp
+*.orig
+*.rej
+*.tsbuildinfo

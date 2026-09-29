@@ -125,6 +125,7 @@ class Investigation(SQLModel, table=True):
     timeline_json: str = "[]"
     mitre_techniques_json: str = "[]"
     threat_intel_summary_json: str = "{}"
+    historical_memories_json: str = "[]"
     investigation_gaps_json: str = "[]"
     recommended_next_steps_json: str = "[]"
     possible_response_actions_json: str = "[]"

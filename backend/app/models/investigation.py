@@ -51,6 +51,7 @@ class InvestigationResult(BaseModel):
     timeline: list[TimelineItem] = Field(default_factory=list)
     mitre_techniques: list[str] = Field(default_factory=list)
     threat_intel_summary: dict[str, Any] = Field(default_factory=dict)
+    historical_memories: list[dict[str, Any]] = Field(default_factory=list)
     investigation_gaps: list[str] = Field(default_factory=list)
     recommended_next_steps: list[str] = Field(default_factory=list)
     possible_response_actions: list[RecommendedAction] = Field(default_factory=list)
