@@ -2115,146 +2115,130 @@ function ActiveDatasetBanner({
 // ---------------------------------------------------------------------------
 
 function EmptyDatasetOverviewHero({
-  datasets = [],
   onDatasetSelect,
   onUpload,
   error,
   isUploading = false,
 }: {
   datasets?: DatasetAsset[]
-  onDatasetSelect: (asset: DatasetAsset) => void
+  onDatasetSelect?: (asset: DatasetAsset) => void
   onUpload?: (file: File) => void
   error?: string | null
   isUploading?: boolean
 }) {
   return (
-    <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-2xl border border-orange-500/25 bg-gradient-to-b from-[#191512] via-[#121214] to-[#0d0e10] p-8 text-center shadow-2xl">
-
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-400 border border-orange-500/25">
-          {isUploading ? <RefreshCw size={32} className="animate-spin text-orange-400" /> : <Upload size={32} />}
-        </div>
-        <h2 className="mt-4 text-2xl font-bold tracking-tight text-white">
-          Upload Dataset for IncidentForge 2.0 Investigation
-        </h2>
-        <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-slate-400">
-          The IncidentForge 2.0 overview is driven directly by dataset analysis. Upload your telemetry or structured asset (CSV, JSON, JSONL, Parquet) to profile schema risk, trigger detection rules, and run autonomous SOC investigations.
-        </p>
-
-        {error && (
-          <div className="mx-auto mt-4 max-w-xl rounded-lg border border-red-500/40 bg-red-950/40 p-3.5 text-left text-xs text-red-200 shadow-lg">
-            <div className="flex items-center gap-2 font-semibold text-red-400">
-              <AlertTriangle size={15} />
-              <span>Dataset Ingestion / Loading Failed</span>
-            </div>
-            <p className="mt-1 text-[11px] text-red-300/90 font-mono break-words">{error}</p>
-          </div>
-        )}
-
-        <div className="mt-6 flex justify-center">
-          <label className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-xl transition ${
+    <div className="relative overflow-hidden rounded-2xl border border-orange-500/20 bg-gradient-to-b from-[#181411] via-[#121214] to-[#0c0d0f] p-8 md:p-10 text-center shadow-2xl">
+      <div className="flex justify-end mb-2">
+        <label
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs md:text-sm font-semibold text-white shadow-lg transition ${
             isUploading
               ? "cursor-not-allowed bg-orange-600/70 opacity-80"
               : "cursor-pointer bg-orange-500 shadow-orange-500/25 hover:bg-orange-400"
-          }`}>
-            {isUploading ? (
-              <>
-                <RefreshCw size={16} className="animate-spin" />
-                <span>Ingesting & Analyzing Dataset...</span>
-              </>
-            ) : (
-              <>
-                <Upload size={16} />
-                <span>Select Dataset File to Ingest</span>
-              </>
-            )}
-            <input
-              type="file"
-              disabled={isUploading}
-              className="hidden"
-              accept=".csv,.json,.jsonl,.parquet"
-              onChange={(e) => {
-                const file = e.target.files?.[0] ?? null
-                if (file) {
-                  if (onUpload) {
-                    onUpload(file)
-                  } else {
-                    window.dispatchEvent(new CustomEvent("dataset-upload", { detail: file }))
-                  }
+          }`}
+        >
+          <Upload size={15} />
+          <span>+ Upload Dataset</span>
+          <input
+            type="file"
+            disabled={isUploading}
+            className="hidden"
+            accept=".csv,.json,.jsonl,.parquet"
+            onChange={(e) => {
+              const file = e.target.files?.[0] ?? null
+              if (file) {
+                if (onUpload) {
+                  onUpload(file)
+                } else {
+                  window.dispatchEvent(new CustomEvent("dataset-upload", { detail: file }))
                 }
-                e.target.value = ""
-              }}
-            />
-          </label>
-        </div>
-
-        <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-3 text-left md:grid-cols-4 text-xs">
-          <div className="rounded border border-white/5 bg-black/30 p-3">
-            <div className="font-mono text-[10px] font-bold text-orange-400">STAGE 01-02</div>
-            <div className="mt-1 font-semibold text-slate-200">Schema & PII Scan</div>
-            <div className="mt-0.5 text-[10px] text-slate-500">Sensitive columns & posture score</div>
-          </div>
-          <div className="rounded border border-white/5 bg-black/30 p-3">
-            <div className="font-mono text-[10px] font-bold text-orange-400">STAGE 03</div>
-            <div className="mt-1 font-semibold text-slate-200">Detection & Chains</div>
-            <div className="mt-0.5 text-[10px] text-slate-500">Correlated multi-event attacks</div>
-          </div>
-          <div className="rounded border border-white/5 bg-black/30 p-3">
-            <div className="font-mono text-[10px] font-bold text-orange-400">STAGE 04</div>
-            <div className="mt-1 font-semibold text-slate-200">Risk Scoring</div>
-            <div className="mt-0.5 text-[10px] text-slate-500">ML risk prioritization</div>
-          </div>
-          <div className="rounded border border-white/5 bg-black/30 p-3">
-            <div className="font-mono text-[10px] font-bold text-orange-400">STAGE 05</div>
-            <div className="mt-1 font-semibold text-slate-200">Investigation & Action</div>
-            <div className="mt-0.5 text-[10px] text-slate-500">AI triage & response execution</div>
-          </div>
-        </div>
+              }
+              e.target.value = ""
+            }}
+          />
+        </label>
       </div>
 
-      {datasets.length > 0 && (
-        <Panel title="Existing Registered Datasets" subtitle="Or select a previously uploaded dataset to analyze on the overview">
-          <div className="overflow-x-auto p-2">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-white/[0.06] text-[10px] font-bold uppercase text-slate-500">
-                <tr>
-                  <th className="px-4 py-2">Dataset Name</th>
-                  <th className="px-4 py-2">Format</th>
-                  <th className="px-4 py-2 text-right">Records</th>
-                  <th className="px-4 py-2">Sensitivity</th>
-                  <th className="px-4 py-2 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {datasets.map((d) => (
-                  <tr key={d.dataset_id} className="hover:bg-white/[0.02]">
-                    <td className="px-4 py-3 font-semibold text-slate-200">{d.name}</td>
-                    <td className="px-4 py-3 font-mono text-slate-400">{d.format.toUpperCase()}</td>
-                    <td className="px-4 py-3 font-mono text-right text-slate-300">{d.record_count.toLocaleString()}</td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold font-mono ${
-                        d.sensitivity === "HIGH" || d.sensitivity === "CRITICAL"
-                          ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                          : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                      }`}>
-                        {d.sensitivity}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => onDatasetSelect(d)}
-                        className="rounded bg-orange-500/15 border border-orange-500/30 px-3 py-1 font-semibold text-xs text-orange-300 hover:bg-orange-500/25"
-                      >
-                        Load into Overview
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-400 border border-orange-500/25">
+        {isUploading ? <RefreshCw size={32} className="animate-spin text-orange-400" /> : <Upload size={32} />}
+      </div>
+      <h2 className="mt-5 text-2xl md:text-3xl font-bold tracking-tight text-white">
+        Upload Dataset for IncidentForge 2.0 Investigation
+      </h2>
+      <p className="mx-auto mt-3 max-w-2xl text-xs md:text-sm leading-relaxed text-slate-400">
+        The IncidentForge 2.0 overview is driven directly by dataset analysis. Upload your telemetry or structured asset (CSV, JSON, JSONL, Parquet) to profile schema risk, trigger detection rules, and run autonomous SOC investigations.
+      </p>
+
+      {error && (
+        <div className="mx-auto mt-4 max-w-xl rounded-lg border border-red-500/40 bg-red-950/40 p-3.5 text-left text-xs text-red-200 shadow-lg">
+          <div className="flex items-center gap-2 font-semibold text-red-400">
+            <AlertTriangle size={15} />
+            <span>Dataset Ingestion / Loading Failed</span>
           </div>
-        </Panel>
+          <p className="mt-1 text-[11px] text-red-300/90 font-mono break-words">{error}</p>
+        </div>
       )}
+
+      <div className="mt-7 flex justify-center">
+        <label
+          className={`flex items-center gap-2.5 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-xl transition ${
+            isUploading
+              ? "cursor-not-allowed bg-orange-600/70 opacity-80"
+              : "cursor-pointer bg-orange-500 shadow-orange-500/30 hover:bg-orange-400"
+          }`}
+        >
+          {isUploading ? (
+            <>
+              <RefreshCw size={18} className="animate-spin" />
+              <span>Ingesting & Analyzing Dataset...</span>
+            </>
+          ) : (
+            <>
+              <Upload size={18} />
+              <span>Select Dataset File to Ingest</span>
+            </>
+          )}
+          <input
+            type="file"
+            disabled={isUploading}
+            className="hidden"
+            accept=".csv,.json,.jsonl,.parquet"
+            onChange={(e) => {
+              const file = e.target.files?.[0] ?? null
+              if (file) {
+                if (onUpload) {
+                  onUpload(file)
+                } else {
+                  window.dispatchEvent(new CustomEvent("dataset-upload", { detail: file }))
+                }
+              }
+              e.target.value = ""
+            }}
+          />
+        </label>
+      </div>
+
+      <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-3.5 text-left sm:grid-cols-2 md:grid-cols-4 text-xs">
+        <div className="rounded-xl border border-white/5 bg-[#0e1013]/90 p-3.5">
+          <div className="font-mono text-[10px] font-bold text-orange-400">STAGE 01-02</div>
+          <div className="mt-1 font-semibold text-slate-200">Schema & PII Scan</div>
+          <div className="mt-0.5 text-[10px] text-slate-500">Sensitive columns & posture score</div>
+        </div>
+        <div className="rounded-xl border border-white/5 bg-[#0e1013]/90 p-3.5">
+          <div className="font-mono text-[10px] font-bold text-orange-400">STAGE 03</div>
+          <div className="mt-1 font-semibold text-slate-200">Detection & Chains</div>
+          <div className="mt-0.5 text-[10px] text-slate-500">Correlated multi-event attacks</div>
+        </div>
+        <div className="rounded-xl border border-white/5 bg-[#0e1013]/90 p-3.5">
+          <div className="font-mono text-[10px] font-bold text-orange-400">STAGE 04</div>
+          <div className="mt-1 font-semibold text-slate-200">Risk Scoring</div>
+          <div className="mt-0.5 text-[10px] text-slate-500">ML risk prioritization</div>
+        </div>
+        <div className="rounded-xl border border-white/5 bg-[#0e1013]/90 p-3.5">
+          <div className="font-mono text-[10px] font-bold text-orange-400">STAGE 05</div>
+          <div className="mt-1 font-semibold text-slate-200">Investigation & Action</div>
+          <div className="mt-0.5 text-[10px] text-slate-500">AI triage & response execution</div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -2443,12 +2427,13 @@ function DatasetAssetsView({
                 <th className="px-4 py-3 text-right">Records</th>
                 <th className="px-4 py-3 text-right">Size (KB)</th>
                 <th className="px-4 py-3">Last Updated</th>
+                <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
               {datasets.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-slate-500">No datasets registered.</td>
+                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500">No datasets registered.</td>
                 </tr>
               ) : (
                 datasets.map((ds) => (
@@ -2475,6 +2460,14 @@ function DatasetAssetsView({
                     </td>
                     <td className="px-4 py-3 text-[11px] text-slate-500">
                       {formatTime(ds.updated_at)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => onDatasetSelect(ds, "Overview")}
+                        className="rounded bg-orange-500/15 border border-orange-500/30 px-3 py-1 font-semibold text-xs text-orange-300 hover:bg-orange-500/25 transition"
+                      >
+                        Load into Overview
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -3403,12 +3396,7 @@ export function IncidentForgeDashboard() {
   const [correlations, setCorrelations] = useState<Correlation[]>([])
   const [cases, setCases] = useState<Case[]>([])
   const [datasets, setDatasets] = useState<DatasetAsset[]>([])
-  const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("incidentforge_active_dataset_id") || null
-    }
-    return null
-  })
+  const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null)
   const selectedDatasetIdRef = useRef<string | null>(selectedDatasetId)
   selectedDatasetIdRef.current = selectedDatasetId
   const [datasetOverview, setDatasetOverview] = useState<DatasetOverview | null>(null)
@@ -3570,27 +3558,10 @@ export function IncidentForgeDashboard() {
 
         setDatasets(dsList)
 
-        if (dsList.length > 0) {
-          const savedId = typeof window !== "undefined" ? localStorage.getItem("incidentforge_active_dataset_id") : null
-          const matched = savedId ? dsList.find((d) => d.dataset_id === savedId) : null
-          const activeDs = matched || dsList[0]
-          const activeId = activeDs.dataset_id
-
-          setSelectedDatasetId(activeId)
-          selectedDatasetIdRef.current = activeId
-          if (typeof window !== "undefined") {
-            localStorage.setItem("incidentforge_active_dataset_id", activeId)
-          }
-
-          const ov = await fetchDatasetOverview(activeId)
-          if (isMounted) {
-            setDatasetOverview(ov)
-          }
-        } else {
-          setSelectedDatasetId(null)
-          selectedDatasetIdRef.current = null
-          setDatasetOverview(null)
-        }
+        // Fresh load: do NOT automatically select or load any dataset
+        setSelectedDatasetId(null)
+        selectedDatasetIdRef.current = null
+        setDatasetOverview(null)
 
         const [healthRes, alertsRes, incidentsRes, correlationsRes, casesRes] =
           await Promise.allSettled([
@@ -3670,7 +3641,7 @@ export function IncidentForgeDashboard() {
               onNavigate={(p) => setPage(p)}
               openIncident={setIncidentId}
               onUpload={handleUploadFile}
-              loading={initialLoading || refreshing || isUploading}
+              loading={Boolean(selectedDatasetId) && !datasetOverview && (initialLoading || refreshing || isUploading)}
               error={uploadError}
               isUploading={isUploading}
             />
