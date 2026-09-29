@@ -1,0 +1,59 @@
+{
+  "model_name": "baseline_logistic_regression",
+  "model_version": "v1.0",
+  "feature_version": "v1.0",
+  "training_timestamp": "2026-09-03T10:04:31.771900+00:00",
+  "scikit_learn_version": "not_installed",
+  "features": [
+    "incident_severity",
+    "correlation_severity",
+    "alert_count",
+    "event_count",
+    "correlation_count",
+    "mitre_count",
+    "has_auth_attack",
+    "has_suspicious_process",
+    "has_network_activity",
+    "has_privilege_escalation",
+    "time_span_seconds",
+    "entity_diversity"
+  ],
+  "weights": {
+    "incident_severity": 0.1914,
+    "correlation_severity": 0.1799,
+    "alert_count": 0.2331,
+    "event_count": 0.139,
+    "correlation_count": 0.5197,
+    "mitre_count": 0.3145,
+    "has_auth_attack": 0.6734,
+    "has_suspicious_process": 0.9374,
+    "has_network_activity": 0.669,
+    "has_privilege_escalation": 1.0103,
+    "time_span_seconds": 0.0005,
+    "entity_diversity": 0.3415
+  },
+  "intercept": -8.4927,
+  "evaluation_metrics": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "roc_auc": 1.0,
+    "average_precision_pr_auc": 1.0,
+    "confusion_matrix": [
+      [
+        47,
+        0
+      ],
+      [
+        0,
+        53
+      ]
+    ]
+  },
+  "dataset_info": {
+    "type": "synthetic_development_data",
+    "n_samples": 400,
+    "seed": 42,
+    "note": "For development and testing only. Does not claim real-world SOC benchmark performance."
+  }
+}
