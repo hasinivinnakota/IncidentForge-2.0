@@ -2,12 +2,6 @@
 
 ## Intelligent Security Operations That Learn From Experience
 
-<p align="center">
-  <img src="docs/assets/incidentforge-architecture.png"
-       alt="IncidentForge 2.0 System Architecture"
-       width="100%">
-</p>
-
 **IncidentForge 2.0** is an AI-assisted Security Operations platform that transforms raw security telemetry into structured investigations, risk-aware incidents, explainable analysis, and continuously improving organizational knowledge.
 
 Unlike conventional SOC tools that treat every incident as an isolated event, IncidentForge introduces **persistent security experience** into the investigation lifecycle.
