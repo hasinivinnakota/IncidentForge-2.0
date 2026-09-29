@@ -1,516 +1,1193 @@
-# IncidentForge
+# IncidentForge 2.0
 
-**AI-Assisted SOC Investigation & Incident Response Platform**
+## Intelligent Security Operations That Learn From Experience
 
-[![Backend Tests](https://img.shields.io/badge/Backend_Tests-223_Passed-success?style=flat-square&logo=pytest)](tests/)
-[![Next.js](https://img.shields.io/badge/Next.js-16_App_Router-black?style=flat-square&logo=next.js)](dashboard/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Framework-009688?style=flat-square&logo=fastapi)](backend/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](#license)
+<p align="center">
+  <img src="docs/assets/incidentforge-architecture.png"
+       alt="IncidentForge 2.0 System Architecture"
+       width="100%">
+</p>
 
----
+**IncidentForge 2.0** is an AI-assisted Security Operations platform that transforms raw security telemetry into structured investigations, risk-aware incidents, explainable analysis, and continuously improving organizational knowledge.
 
-### At a Glance
+Unlike conventional SOC tools that treat every incident as an isolated event, IncidentForge introduces **persistent security experience** into the investigation lifecycle.
 
-- **Purpose:** Defensive SOC orchestration, forensic investigation, and incident response platform.
-- **Primary Focus:** Bridging multi-source endpoint telemetry, automated attack-sequence correlation, ML risk prioritization, structured advisory AI analysis, and analyst-governed response simulation.
-- **Backend:** Python 3.10+, FastAPI, SQLModel / SQLAlchemy, SQLite (development store), Pydantic v2.
-- **Frontend:** Next.js 16 (App Router), React, TypeScript, Tailwind CSS, Lucide Icons, Recharts.
-- **Telemetry Sources:** Wazuh SIEM Manager (v4.9), Sysmon / Windows Event logs, and structured JSON feeds via `WazuhAlertAdapter`.
-- **Machine Learning:** Transparent Logistic Regression baseline model with feature attribution scoring (0–100).
-- **AI Engine:** Structured multi-phase investigation provider (`OBSERVED`, `INFERRED`, `RECOMMENDED`) with strict advisory boundaries.
-- **Testing Coverage:** 223 automated unit and integration tests passing (`pytest`), clean Next.js static production build.
+Every resolved investigation can contribute validated knowledge to organizational memory. When a related incident appears in the future, that experience can be recalled and used alongside current evidence.
 
----
+### The core loop
 
-## Overview
-
-IncidentForge is a defensive cybersecurity operations and investigation platform designed to manage the full lifecycle of a security event—from raw telemetry ingestion and rule-based detection to multi-alert correlation, machine learning risk prioritization, threat-intelligence enrichment, advisory AI-assisted investigation, SOC case management, analyst-controlled response simulation, and dataset security monitoring (v2).
-
-Modern Security Operations Centers often struggle with disparate tools that emit fragmented alerts, leaving analysts to perform manual forensic correlation, ad-hoc risk assessment, and disjointed triage across separate consoles. IncidentForge addresses this operational friction by uniting the data plane and decision plane into an integrated, deterministic pipeline. Telemetry ingested into the system is normalized into canonical schemas, correlated into coherent attack sequences, enriched with indicator intelligence, and presented through an analyst-centric workspace.
-
-Rather than positioning artificial intelligence as an unconstrained autonomous decision-maker, IncidentForge implements a human-in-the-loop security architecture. The AI Investigator operates strictly within an advisory boundary, structuring findings and identifying telemetry blind spots while delegating severity scoring and response approval entirely to deterministic models and authorized analysts. All containment and remediation capabilities are explicitly bounded within an allowlisted simulation sandbox, preventing unauthorized or destructive modifications to monitored infrastructure.
-
----
-
-## Security Operations Problem
-
-Security operations teams operate in an environment characterized by asymmetric operational challenges:
-
-1. **Alert Fatigue:** High volumes of atomic, un-correlated alerts overwhelm analyst capacity and obscure multi-stage intrusion campaigns.
-2. **Isolated Telemetry:** Security indicators are distributed across system logs, network monitors, and host sensors without unified cross-domain entities.
-3. **Fragmented Investigation:** Analysts must manually pivot across threat intelligence databases, endpoint process trees, and MITRE ATT&CK references.
-4. **Opaque Risk Prioritization:** Static alert severity tags fail to reflect dynamic contextual risk, entity diversity, or temporal proximity.
-5. **Manual Threat Intelligence Enrichment:** Extracting and scoring observable IOCs (IPs, domains, hashes) manually slows down Mean Time to Respond (MTTR).
-6. **Uncontrolled Automation Risks:** Full automated response without guardrails introduces severe operational and availability risks to production systems.
-7. **Lack of Auditability:** Ad-hoc investigative steps and unrecorded containment attempts degrade forensic accountability and incident post-mortems.
-
-IncidentForge systematically mitigates these challenges by establishing deterministic alert normalization, temporal attack-sequence correlation, mathematically transparent risk prioritization, automated IOC extraction, and an immutable audit trail governing every state transition, now spanning both endpoint and structured dataset activity.
-
----
-
-## System Architecture
-
-IncidentForge decouples high-volume telemetry processing (data plane) from investigative analysis, threat scoring, and response governance (decision and control planes):
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                       DATA PLANE                                       │
-│                                                                                        │
-│   Wazuh Manager / Sysmon / Synthetic Telemetry                                         │
-│                          │                                                             │
-│                          ▼                                                             │
-│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
-│   │ Telemetry Adapter Boundary (`WazuhAlertAdapter` / `FixtureAdapter`)            │   │
-│   └──────────────────────────────────────┬─────────────────────────────────────────┘   │
-│                                          ▼                                             │
-│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
-│   │ Normalization Service (`NormalizedEvent` Canonical Schema)                     │   │
-│   └──────────────────────────────────────┬─────────────────────────────────────────┘   │
-│                                          ▼                                             │
-│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
-│   │ Event Pipeline (Persistence, Idempotency & Audit Logging)                      │   │
-│   └──────────────────────────────────────┬─────────────────────────────────────────┘   │
-└──────────────────────────────────────────┼─────────────────────────────────────────────┘
-                                           │
-┌──────────────────────────────────────────┼─────────────────────────────────────────────┐
-│                                          ▼            ANALYSIS & DECISION PLANE        │
-│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
-│   │ Detection Engine (Stateless Rule Evaluation → Deterministic `Alert` Creation)  │   │
-│   └──────────────────────────────────────┬─────────────────────────────────────────┘   │
-│                                          ▼                                             │
-│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
-│   │ Correlation Engine (Time-Window Sequence Evaluation → Unified `Incident`)      │   │
-│   └───────────────────┬──────────────────────────────────┬─────────────────────────┘   │
-│                       │                                  │                             │
-│                       ▼                                  ▼                             │
-│   ┌──────────────────────────────────────┐   ┌─────────────────────────────────────┐   │
-│   │ ML Risk Scorer (Feature Attribution) │   │ Threat Intel Service (IOC Lookup)   │   │
-│   └───────────────────┬──────────────────┘   └───────────────────┬─────────────────┘   │
-│                       │                                  │                             │
-│                       └─────────────────┬────────────────┘                             │
-│                                         ▼                                              │
-│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
-│   │ AI Investigator (Advisory Analysis: Observed / Inferred / Gaps / Steps)        │   │
-│   └──────────────────────────────────────┬─────────────────────────────────────────┘   │
-│                                          ▼                                             │
-│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
-│   │ Case Management (Analyst Collaboration, Notes, Evidence Pointers)              │   │
-│   └──────────────────────────────────────┬─────────────────────────────────────────┘   │
-└──────────────────────────────────────────┼─────────────────────────────────────────────┘
-                                           │
-┌──────────────────────────────────────────┼─────────────────────────────────────────────┐
-│                                          ▼          RESPONSE GOVERNANCE & UI           │
-│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
-│   │ Controlled Response Engine (Simulation Sandbox · Mandatory Analyst Approval)   │   │
-│   └──────────────────────────────────────┬─────────────────────────────────────────┘   │
-│                                          ▼                                             │
-│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
-│   │ Next.js SOC Operations Console (Live Polling Telemetry & Incident Workspace)   │   │
-│   └────────────────────────────────────────────────────────────────────────────────┘   │
-└────────────────────────────────────────────────────────────────────────────────────────┘
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                        INCIDENTFORGE                         │
+│                                                              │
+│   DETECT → RECALL → INVESTIGATE → RESOLVE → LEARN           │
+│      ↑                                             │         │
+│      └────────────── FUTURE INCIDENTS ────────────┘         │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-The data plane guarantees that untrusted input is sanitized, validated, and normalized before crossing the pipeline boundary. The analysis plane evaluates detections, computes correlations, enriches observables, and formulates investigative summaries. Finally, the response governance layer isolates all containment actions behind human analyst approval gates and deterministic simulation sandboxes.
+> **IncidentForge doesn't just investigate incidents. It remembers what was learned from them.**
 
 ---
 
-## Core Security Pipeline
+# Overview
 
-IncidentForge processes security data through eleven distinct, deterministic stages:
+Modern security operations generate enormous amounts of telemetry, alerts, indicators, and investigation data.
 
-1. **Telemetry Ingestion:** Receives raw security events via adapter interfaces (`TelemetryAdapter`), supporting file buffers, live log feeds, or HTTP endpoints.
-2. **Normalization:** Converts heterogeneous data into the canonical `NormalizedEvent` model with standardized timestamp parsing, severity mapping (0–15), and credential scrubbing.
-3. **Event Persistence & Auditing:** Persists incoming events and emits an immutable `AuditEvent` (`event.created` or `event.duplicate`), ensuring forensic traceability.
-4. **Detection Engineering:** Evaluates newly persisted events against registered `DetectionRule` definitions, generating deterministic domain alerts (`alert-SHA256(event_id:rule_id)[:16]`).
-5. **Attack-Sequence Correlation:** Matches incoming alerts against sliding temporal windows (e.g., 15-minute authentication sequences or 30-minute process/network sequences) sharing unified entity keys.
-6. **Incident Aggregation:** Constructs and maintains the `Incident` lifecycle (`open`, `investigating`, `resolved`), linking correlated alerts, event IDs, and bounded evidence dictionaries.
-7. **Risk Prioritization:** Evaluates incident features using a mathematical model to assign a 0–100 risk score, risk level badge, and feature contribution weights.
-8. **Threat Intelligence Enrichment:** Extracts observable IOCs (IPv4 addresses, domain names, URLs, file hashes) from incident telemetry and performs automated provider lookups.
-9. **AI-Assisted Investigation:** Analyzes evidence on demand, outputting structured empirical findings, inferred tactics, and recommended steps under an explicit advisory constraint.
-10. **Case Management:** Coordinates SOC operations through dedicated cases, priority assignments, append-only analyst notes, and lightweight evidence references.
-11. **Controlled Response:** Proposes sandbox containment actions requiring analyst approval before executing safe, non-destructive simulations.
+The difficult part is not simply detecting suspicious activity.
 
----
+Security analysts must continuously determine:
 
-## Detection Engineering
+* What actually happened?
+* Which events belong to the same incident?
+* How severe is the activity?
+* What evidence supports the conclusion?
+* Has the organization encountered similar behavior before?
+* What investigation path should be followed?
+* What remediation has worked previously?
+* What should be remembered for the next incident?
 
-IncidentForge features a deterministic, stateless detection engine that evaluates normalized events against formal detection rules implementing the `DetectionRule` interface.
+IncidentForge brings these capabilities together into a single investigation workflow.
 
-### Built-in Detection Rules & MITRE ATT&CK Mapping
-
-| Rule ID | Rule Name | MITRE ATT&CK | Trigger Condition | Severity |
-|---|---|---|---|---|
-| `builtin-001` | High Severity Event | — | Event severity $\ge$ 10 | 10 (High) |
-| `builtin-002` | Suspicious Process Execution | **T1059** (Command and Scripting Interpreter) | `process_start` referencing paths (`/tmp/`, `\temp\`) or encoded shells | 10 (High) |
-| `builtin-003` | Authentication Failure | **T1110** (Brute Force) | `authentication_failure` or `login_failure` event types | 6 (Medium) |
-| `builtin-004` | Network Connection Anomaly | **T1071** (Application Layer Protocol) | Outbound network connection to anomalous destination addresses | 4 (Low) |
-| `builtin-005` | Privilege Escalation Indicator | **T1548** (Abuse Elevation Control Mechanism) | Event types matching `privilege_escalation`, `sudo`, or `runas` | 12 (Critical) |
-
-### Engineering Guarantees
-- **Deterministic Alert Identifiers:** Alert IDs are generated via cryptographic hashes of the event ID and rule ID (`alert-{hash}`), preventing alert duplication upon repeated ingestions.
-- **Bounded Evidence Dictionaries:** Detection matches only store relevant operational fields (matched fields, thresholds, matched indicators), preventing unconstrained memory bloat.
-- **Audit Logging:** Every alert creation or duplicate identification generates an immutable audit record (`alert.created` / `alert.duplicate`).
-
----
-
-## Correlation & Incident Construction
-
-In modern SOC operations, understanding the distinction between telemetry primitives is essential:
-
-- **Event:** An individual record of system activity (e.g., a single failed logon attempt).
-- **Alert:** A detection rule hit signaling that an individual event violated a security threshold.
-- **Correlation:** An analytical grouping of related alerts linked by shared entities across a temporal window.
-- **Incident:** An actionable security case requiring investigation, representing an active attack chain.
-
-### Correlation Mechanics
-The `CorrelationEngine` applies formal `CorrelationRule` contracts across historical sliding windows:
-
-1. **Authentication Attack Sequence (`corr-rule-001`):** Correlates multiple `builtin-003` authentication failures targeting or originating from the same entity (`user:<id>`, `source_ip:<ip>`, or `host:<name>`) within a 900-second (15-minute) window. Severity escalates dynamically based on alert volume ($8 + (\text{count} - 2) \times 2$, bounded at 15).
-2. **Process Network Sequence (`corr-rule-002`):** Correlates suspicious process execution (`builtin-002`) followed by an outbound network connection (`builtin-004`) on the same host within an 1800-second (30-minute) window.
-
-When a correlation fires, the `IncidentService` automatically creates or updates an aggregate `Incident` record with unified tags, linked correlation IDs, and aggregated MITRE technique tags.
-
----
-
-## ML Risk Prioritization
-
-IncidentForge incorporates a transparent machine learning risk prioritization service (`RiskScoringService`) to assign an objective 0–100 risk score and categorical level (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`) to active incidents.
-
-### Transparent Feature Attribution
-Unlike black-box models, IncidentForge outputs mathematically interpretable feature contributions alongside every score:
-- `incident_severity`: Base severity contribution of the incident.
-- `correlation_severity`: Severity of upstream correlation matches.
-- `entity_diversity`: Number of distinct users, hosts, and IP addresses involved.
-- `has_auth_attack`: Binary indicator for authentication sequence patterns.
-- `has_proc_net_attack`: Binary indicator for process/network sequence patterns.
-- `alert_count`: Total alert volume enclosed in the incident.
-
-```
-Linear Logit Score ──► Logistic Sigmoid Function ──► Scaled Score (0–100)
+```text
+Security Data
+     │
+     ▼
+Schema Detection
+     │
+     ▼
+Normalization
+     │
+     ▼
+Event Generation
+     │
+     ▼
+Detection
+     │
+     ▼
+Correlation
+     │
+     ▼
+Incident Creation
+     │
+     ├───────────────┐
+     ▼               ▼
+ML Risk Score    Hindsight Recall
+     │               │
+     └───────┬───────┘
+             ▼
+      AI Investigation
+             │
+             ▼
+      Analyst Decision
+             │
+             ▼
+         Resolution
+             │
+             ▼
+      Hindsight Retain
+             │
+             ▼
+   Organizational Experience
 ```
 
-> [!NOTE]
-> **Evaluation Disclaimer:** The current model is a scikit-learn logistic regression baseline trained and evaluated on synthetic development datasets. It is designed to demonstrate transparent risk-ranking mechanics, automated feature extraction, and explainable feature contributions rather than real-world threat classification benchmarks.
+---
+
+# The Problem
+
+Traditional security workflows are largely event-driven.
+
+An alert arrives.
+
+An analyst investigates it.
+
+The incident is resolved.
+
+Then another similar alert arrives and the process begins again.
+
+The organization may have already encountered the same:
+
+* attack technique,
+* persistence mechanism,
+* process chain,
+* phishing pattern,
+* indicator,
+* root cause,
+* investigation path,
+* remediation strategy,
+
+but that experience is often difficult to bring into the next investigation at the right moment.
+
+IncidentForge treats previous investigations as a source of **operational knowledge**.
+
+Instead of allowing valuable incident experience to disappear after resolution, the system can transform validated investigation outcomes into reusable organizational memory.
 
 ---
 
-## Threat Intelligence
+# The IncidentForge Approach
 
-The `ThreatIntelligenceService` provides automated indicator extraction and enrichment:
+IncidentForge combines five major capabilities:
 
-- **Observable Extraction:** Automated regex-based extraction of IPv4 addresses (excluding RFC 1918 private subnets and loopbacks), domain names, URLs, and cryptographic hashes (MD5, SHA-1, SHA-256).
-- **Normalization & Deduplication:** Canonical lowercase normalization and deduplication across all alerts linked to an incident.
-- **Provider Abstraction:** Implements a pluggable provider interface (`ThreatIntelProvider`). The default development environment utilizes a deterministic local provider (`LocalDevThreatIntelProvider`).
-- **Enrichment Metadata:** Indicators are enriched with threat classifications (`malicious`, `suspicious`, `benign`, `unknown`), confidence ratings (0–100%), source counts, and contextual explanations.
-- **Incident Linkage:** Enrichments are persisted in the database and linked to the active incident workspace.
+### 1. Security Data Processing
 
----
+Security datasets are inspected, normalized, and transformed into structured events.
 
-## AI Investigator
+### 2. Detection & Correlation
 
-The `AIInvestigatorService` provides automated, on-demand incident analysis and synthesis, serving as a cognitive multiplier for SOC analysts.
+Security activity is evaluated using detection logic and correlation workflows to transform individual events into meaningful incidents.
 
-### Structured Analytic Output
-Every AI investigation produces a structured `InvestigationResult`:
-- **OBSERVED Findings:** Empirically verified indicators, affected entities, and confirmed alerts.
-- **INFERRED Findings:** Probable attacker intentions, MITRE ATT&CK campaign associations, and inferred movement.
-- **RECOMMENDED Steps:** Concrete forensic validation tasks and containment recommendations.
-- **Investigation Gaps:** Explicit identification of telemetry blind spots (e.g., missing network PCAP, memory dumps, or process hierarchy logs).
+### 3. ML-Based Risk Scoring
 
-### Defensive Governance & Advisory Boundaries
-- **Strictly Advisory:** AI Investigator findings are explicitly advisory recommendations. AI output cannot approve response actions, alter incident severities, or modify endpoint configurations.
-- **Untrusted Telemetry Handling:** Ingested event messages and metadata are treated as untrusted data; payloads are length-bounded and scrubbed for prompt injection vectors and credentials before reaching the provider.
-- **Confidence Scoring:** Analyses include an explicit confidence score (e.g., 95%) derived from evidence density.
+A machine-learning pipeline provides an additional risk signal for security activity.
+
+### 4. AI Investigation
+
+The investigator combines current evidence with contextual information to produce structured analysis and recommendations.
+
+### 5. Hindsight Organizational Memory
+
+Previous validated investigations can be retained and recalled so that future investigations benefit from accumulated experience.
+
+These capabilities are connected rather than operating as isolated features.
 
 ---
 
-## Response Governance
+# Organizational Memory
 
-IncidentForge enforces an industry-standard human-in-the-loop response governance architecture (Phase 10 specification).
+The defining capability of IncidentForge is its use of **Hindsight as an operational memory layer**.
 
-### Safety Principles & Containment Sandbox
-- **Simulation-Only Execution:** Response actions execute exclusively within a local, deterministic simulation sandbox. Under no circumstances will network interfaces be modified, accounts disabled, firewalls altered, or files deleted.
-- **Mandatory Analyst Approval Gate:** Proposed actions strictly require human analyst authorization.
-- **No Unsafe Sinks:** The codebase contains zero invocations of `subprocess`, `os.system`, shell interpreters, or PowerShell execution.
+The system distinguishes between:
 
-### Strict State Machine
-
+```text
+Current Evidence
+        +
+Historical Experience
+        ↓
+     Investigation
+        ↓
+    Analyst Review
+        ↓
+      Resolution
+        ↓
+   Validated Learning
+        ↓
+ Organizational Memory
 ```
-              ┌─────────────┐
-              │  PROPOSED   │
-              └──────┬──────┘
-                     │
-           ┌─────────┴─────────┐
-           ▼                   ▼
-    ┌─────────────┐     ┌─────────────┐
-    │  APPROVED   │     │  REJECTED   │ (terminal)
-    └──────┬──────┘     └─────────────┘
+
+The objective is not to store every raw telemetry record as memory.
+
+Instead, the memory layer focuses on meaningful security experience such as:
+
+* Incident patterns
+* Attack behaviors
+* Indicators
+* Root causes
+* Investigation procedures
+* Analyst decisions
+* Successful remediation
+* Failed approaches
+* Lessons learned
+* Recurring attacker behavior
+
+This gives organizational memory a clear operational purpose.
+
+---
+
+# Memory Lifecycle
+
+## Retain
+
+After an investigation has been resolved and validated, useful knowledge can be retained.
+
+Conceptually:
+
+```text
+Incident
+   ↓
+Evidence
+   ↓
+Investigation
+   ↓
+Resolution
+   ↓
+Lessons Learned
+   ↓
+Hindsight Retain
+```
+
+## Recall
+
+When a new incident is investigated, relevant historical experience can be retrieved.
+
+```text
+New Incident
+     ↓
+Current Evidence
+     ↓
+Hindsight Recall
+     ↓
+Relevant Historical Experience
+```
+
+## Investigate
+
+The recalled context is presented alongside current evidence.
+
+```text
+┌─────────────────────┐
+│   CURRENT EVIDENCE  │
+└──────────┬──────────┘
            │
-     ┌─────┴─────┐
-     ▼           ▼
-┌───────────┐ ┌────────┐
-│ EXECUTED  │ │ FAILED │ (terminal)
-└───────────┘ └────────┘
+           +
+           │
+┌──────────▼──────────┐
+│ HISTORICAL CONTEXT  │
+└──────────┬──────────┘
+           │
+           ▼
+   AI INVESTIGATION
 ```
 
-- Direct execution of a `PROPOSED` action is blocked with HTTP 409 Conflict.
-- Terminal states (`EXECUTED`, `FAILED`, `REJECTED`) are strictly non-reusable and immutable.
-- Actions are strictly restricted to an allowlist:
-  1. `isolate_endpoint`: Simulates endpoint network isolation.
-  2. `quarantine_file`: Simulates suspicious binary isolation.
-  3. `revoke_credentials`: Simulates account credential invalidation.
-- Every state change writes an immutable `AuditEvent` with sanitized actor attribution.
+## Learn
 
----
+The investigation outcome can then become part of the organization's future experience.
 
-## Wazuh Integration
+This creates a continuous learning cycle:
 
-IncidentForge integrates with the open-source Wazuh SIEM stack via a dedicated ingestion adapter (`WazuhAlertAdapter` in [backend/app/adapters/wazuh.py](backend/app/adapters/wazuh.py)).
-
-### Telemetry Mapping & Normalization
-The adapter translates raw Wazuh JSON records (from `alerts.json` or manager APIs) directly into canonical `NormalizedEvent` structures:
-- `id` $\rightarrow$ Deterministic event ID (`wazuh-alert-<id>`) ensuring idempotent ingestion.
-- `rule.level` (0–16) $\rightarrow$ IncidentForge severity (0–15 scale).
-- `rule.id`, `rule.description` $\rightarrow$ Alert rule metadata and human-readable message.
-- `rule.mitre.id` $\rightarrow$ MITRE ATT&CK technique tags (e.g., `T1110`).
-- `data.win.eventdata` / `agent` $\rightarrow$ Entity mappings for users, source/destination IPs, and hosts.
-- `sanitize_value()` $\rightarrow$ Automatic regex-based redaction of passwords, tokens, API keys, and authorization headers.
-
-### Known Infrastructure Compatibility Note
-In Wazuh 4.9, the embedded Filebeat agent (v7.10.2) transmits legacy `_type: "_doc"` mapping metadata in bulk indexing requests. OpenSearch 2.13 (the engine powering Wazuh Indexer) strictly enforces Elasticsearch 8 / OpenSearch 2.x specifications and rejects requests specifying explicit document types.
-
-Rather than compromising OpenSearch configuration or weakening cluster security, IncidentForge addresses this through its **Adapter Boundary Architecture**: the `WazuhAlertAdapter` consumes alerts directly from the manager log volume or API, bypassing the broken Filebeat-to-OpenSearch indexing path entirely.
-
----
-
-## SOC Dashboard
-
-The IncidentForge web console is built using Next.js 16 (App Router), React, TypeScript, and Tailwind CSS. It is designed as an operations interface with live polling telemetry updates.
-
-### Module Navigation
-- **Operations:**
-  - `Overview` — High-level SOC posture, KPI metric chips, threat activity curves, MITRE technique distribution, and live alert streams.
-  - `Alerts` — Tabular alert feed with severity filtering and rule attribution.
-  - `Correlations` — Real-time view of active correlation sequence links.
-- **Investigation:**
-  - `Incidents` — Prioritized list of correlated incidents.
-  - `Cases` — SOC case management queue and investigation assignments.
-  - `AI Investigator` — Interactive advisory investigation console.
-  - `Threat Intelligence` — Searchable IOC database and reputation table.
-- **Response & System:**
-  - `Response` — Controlled response queue and action approval interface.
-  - `System` — System service health and API connectivity status.
-
-### 8-Tab Incident Workspace
-Selecting any incident opens the deep-inspection workspace:
-1. **Overview:** Incident summary, correlation links, alert linkages, and ML/AI snapshot.
-2. **Timeline:** Chronological event sequence derived from forensic investigation.
-3. **Evidence:** Raw, bounded evidence JSON dictionary payloads.
-4. **ML Risk:** 0–100 risk score breakdown, risk level, and feature contribution weights.
-5. **AI Investigation:** Structured findings (`OBSERVED`, `INFERRED`, `RECOMMENDED`), telemetry gaps, and recommended next steps.
-6. **Threat Intelligence:** Extracted IOC table with classifications, confidence scores, and providers.
-7. **Case:** Dedicated SOC case tracking, priority, and analyst notes.
-8. **Response:** Simulation-only containment action queue with analyst approval buttons.
-
----
-
-## Security Model
-
-IncidentForge is engineered from the ground up to follow defensive application security principles:
-
-- **Secret & Key Hygiene:** Zero hardcoded credentials, API keys, or private keys in source code. Local environment files (`.env`, `.env.local`) are strictly excluded via `.gitignore`.
-- **Credential Redaction:** Automated regex sanitization strips sensitive key-value pairs (passwords, auth tokens, bearer credentials, cookies) from all ingested logs, evidence payloads, and audit trails.
-- **Untrusted Telemetry Boundary:** All inbound payloads pass through strict Pydantic v2 validation models (`extra="forbid"`) with bounded string lengths to prevent payload-based denial of service or injection.
-- **Advisory AI Boundaries:** AI analysis cannot trigger containment actions or mutate operational severities.
-- **Zero Destructive Sinks:** Absence of command-line execution sinks (`exec`, `eval`, `subprocess`, `os.system`, PowerShell).
-- **Auditability:** Every event intake, alert generation, case status change, and response approval emits an immutable `AuditEvent` with UTC timestamps and actor attribution.
-
----
-
-## Testing & Validation
-
-IncidentForge maintains high software quality through automated regression testing and build validation:
-
-```
-============================== test session starts ==============================
-rootdir: D:\IncidentForge, configfile: pyproject.toml, testpaths: tests
-collected 223 items
-
-tests/unit/test_adapters.py .                                            [  0%]
-tests/unit/test_ai_investigator_service.py ............                  [  5%]
-tests/unit/test_alert_service.py ........                                [  9%]
-tests/unit/test_case_lifecycle.py ........                              [ 12%]
-tests/unit/test_case_models.py ...........                              [ 17%]
-tests/unit/test_case_persistence.py ...........                         [ 22%]
-tests/unit/test_case_service.py ..............                          [ 28%]
-tests/unit/test_correlation_engine.py ..........                        [ 33%]
-tests/unit/test_correlation_persistence.py ............                 [ 38%]
-tests/unit/test_correlation_rules.py .................                  [ 46%]
-tests/unit/test_detection.py .........                                  [ 50%]
-tests/unit/test_incident_persistence.py ............                    [ 55%]
-tests/unit/test_incident_service.py ..............                      [ 61%]
-tests/unit/test_investigation_persistence.py ..........                 [ 66%]
-tests/unit/test_ioc_extractor.py ..........                             [ 70%]
-tests/unit/test_llm_provider.py ...........                             [ 75%]
-tests/unit/test_ml_features.py ...........                              [ 80%]
-tests/unit/test_ml_model.py ...........                                 [ 85%]
-tests/unit/test_ml_training.py ....                                     [ 87%]
-tests/unit/test_models.py ......                                        [ 90%]
-tests/unit/test_normalization.py ..                                     [ 91%]
-tests/unit/test_persistence.py ..........                               [ 95%]
-tests/unit/test_response_models.py ........                             [ 98%]
-tests/unit/test_response_persistence.py ........                        [100%]
-tests/unit/test_wazuh_adapter.py ......                                 [100%]
-====================== 223 passed, 1 warning in 12.93s =======================
-```
-
-- **Backend Test Suite:** 223 unit and integration tests passing (`pytest -q`).
-- **Frontend Production Build:** Compiles cleanly (`next build`) via Next.js Turbopack compiler.
-- **Git Hygiene:** Clean working tree with zero whitespace or conflict marker defects (`git diff --check`).
-
----
-
-## Reproducible Demo
-
-A self-contained synthetic demonstration scenario is documented in [docs/demo_scenario.md](docs/demo_scenario.md).
-
-The demo exercises the full end-to-end lifecycle using safe RFC 5737 documentation IP addresses (`198.51.100.23`) and synthetic analyst identities (`sec_analyst_test`):
-1. Ingests two sequential brute-force authentication failures.
-2. Demonstrates detection rule firing (`builtin-003`, MITRE `T1110`).
-3. Demonstrates sliding-window correlation into an aggregate Incident (`corr-rule-001`).
-4. Demonstrates automated ML risk scoring and IOC extraction.
-5. Demonstrates AI Investigator execution with structured findings.
-6. Exercises the response governance workflow: propose `isolate_endpoint` $\rightarrow$ analyst approval $\rightarrow$ simulation execution.
-
----
-
-## Repository Structure
-
-```
-IncidentForge/
-├── backend/                  # FastAPI backend application
-│   └── app/
-│       ├── adapters/         # Ingestion adapters (Wazuh, Fixtures, Base contract)
-│       ├── api/routes/       # REST API endpoints (alerts, incidents, cases, etc.)
-│       ├── ml/               # Risk scoring feature extraction & baseline training
-│       ├── models/           # Pydantic v2 & SQLModel domain definitions
-│       ├── persistence/      # Database models & repository layer
-│       ├── rules/            # Detection & correlation rule implementations
-│       └── services/         # Orchestration (pipeline, risk, TI, response, AI)
-├── dashboard/                # Next.js 16 SOC web operations console
-│   ├── app/                  # Next.js App Router pages and layout
-│   ├── components/           # IncidentForge widgets, dashboard, and UI elements
-│   └── lib/api/              # Strongly typed API client library
-├── docs/                     # Technical specifications and architecture records
-│   ├── architecture.md       # Comprehensive system architecture documentation
-│   └── demo_scenario.md      # Synthetic SOC attack-sequence walkthrough
-├── infrastructure/           # Docker Compose & local SIEM infrastructure configs
-│   ├── configs/              # Sysmon and agent telemetry configuration templates
-│   └── docker/               # Wazuh Manager, Indexer, and Dashboard container configs
-├── tests/                    # Comprehensive automated testing suite
-│   ├── integration/          # Multi-service API integration tests
-│   └── unit/                 # Domain logic, adapter, engine, and repository tests
-├── pyproject.toml            # Python packaging and dependency specifications
-└── README.md                 # Primary platform documentation
+```text
+RECALL
+  ↓
+INVESTIGATE
+  ↓
+RESOLVE
+  ↓
+LEARN
+  ↓
+RECALL AGAIN
 ```
 
 ---
 
-## Local Development
+# Example: Learning From a Previous Incident
 
-### Prerequisites
-- Python 3.10 or higher
-- Node.js 18+ and `pnpm` (or `npm`)
-- Git
+Consider an investigation involving:
 
-### 1. Backend Setup
+```text
+Encoded PowerShell
+        +
+Scheduled Task Persistence
+        +
+Malicious Attachment
+```
+
+The investigation determines:
+
+```text
+Root Cause:
+Malicious attachment execution
+
+Persistence:
+Scheduled task
+
+Successful Remediation:
+Endpoint isolation
+Scheduled task removal
+Credential reset
+```
+
+The validated outcome can become organizational memory.
+
+Later, a new incident produces suspicious PowerShell activity.
+
+Instead of beginning with only:
+
+> Suspicious PowerShell execution detected.
+
+IncidentForge can retrieve the relevant historical experience.
+
+The investigator may then recognize that a previous investigation associated similar behavior with scheduled-task persistence following malicious attachment execution.
+
+The historical information does not replace current evidence.
+
+It provides additional context for the investigation.
+
+---
+
+# Memory Trace
+
+IncidentForge is designed to make historical influence visible.
+
+An investigation can expose information such as:
+
+```text
+HINDSIGHT MEMORY
+────────────────────────────────────────
+
+Relevant historical incidents recalled: 2
+
+INC-0871
+PowerShell Persistence
+
+Resolution:
+Scheduled task removal
+
+Lesson:
+Inspect persistence mechanisms early
+
+
+INC-0914
+Malicious Attachment
+
+Resolution:
+Endpoint isolation + credential reset
+
+Lesson:
+Review parent-child process relationships
+
+
+────────────────────────────────────────
+
+Historical context used for:
+
+✓ Investigation hypothesis
+✓ Investigation steps
+✓ Remediation guidance
+```
+
+This creates an explicit relationship between:
+
+```text
+Historical Memory
+      ↓
+Retrieved Context
+      ↓
+Investigation
+      ↓
+Recommendation
+```
+
+---
+
+# No Forced Memory
+
+Historical memory should not be injected into an investigation simply because it exists.
+
+If no relevant historical experience is found:
+
+```text
+Incident
+   ↓
+Hindsight Recall
+   ↓
+No Relevant Memory
+   ↓
+Current Evidence
+   ↓
+Investigation
+```
+
+The system can explicitly indicate:
+
+> **No relevant historical memory found. Investigation proceeds using current evidence.**
+
+This keeps historical context relevant rather than forcing unrelated memories into the reasoning process.
+
+---
+
+# Evidence-Aware AI Investigation
+
+IncidentForge separates different information categories so that an analyst can distinguish evidence from interpretation.
+
+## Observed
+
+Directly supported by current telemetry.
+
+```text
+OBSERVED
+
+A PowerShell process executed on the endpoint.
+```
+
+## Historical Context
+
+Information retrieved from previous investigations.
+
+```text
+HISTORICAL CONTEXT
+
+A similar PowerShell persistence pattern
+was identified in a previous incident.
+```
+
+## Inferred
+
+Reasoning based on available evidence and historical context.
+
+```text
+INFERRED
+
+The current activity warrants investigation
+of scheduled-task persistence.
+```
+
+## Recommended
+
+Suggested next steps for analyst review.
+
+```text
+RECOMMENDED
+
+Inspect scheduled-task creation events and
+correlate them with the PowerShell execution.
+```
+
+This distinction provides a structured path from:
+
+**evidence → context → reasoning → recommendation**
+
+without presenting every AI-generated statement as an observed fact.
+
+---
+
+# Security Data Pipeline
+
+IncidentForge processes security data through a structured pipeline.
+
+```text
+┌─────────────────────┐
+│       UPLOAD        │
+└──────────┬──────────┘
+           ▼
+┌─────────────────────┐
+│  SCHEMA DETECTION   │
+└──────────┬──────────┘
+           ▼
+┌─────────────────────┐
+│    NORMALIZATION    │
+└──────────┬──────────┘
+           ▼
+┌─────────────────────┐
+│   EVENT GENERATION  │
+└──────────┬──────────┘
+           ▼
+┌─────────────────────┐
+│      DETECTION      │
+└──────────┬──────────┘
+           ▼
+┌─────────────────────┐
+│     CORRELATION     │
+└──────────┬──────────┘
+           ▼
+┌─────────────────────┐
+│ INCIDENT GENERATION │
+└──────────┬──────────┘
+           ▼
+┌─────────────────────┐
+│    ML RISK SCORE    │
+└──────────┬──────────┘
+           ▼
+┌─────────────────────┐
+│  HINDSIGHT RECALL   │
+└──────────┬──────────┘
+           ▼
+┌─────────────────────┐
+│  AI INVESTIGATION   │
+└─────────────────────┘
+```
+
+This explicit pipeline makes data movement and processing stages easier to understand, test, and troubleshoot.
+
+---
+
+# Detection & Correlation
+
+IncidentForge transforms individual security events into higher-level incidents.
+
+The correlation layer provides the bridge between:
+
+```text
+Individual Events
+       ↓
+Related Activity
+       ↓
+Correlated Behavior
+       ↓
+Security Incident
+```
+
+This allows the investigation layer to reason about an incident rather than treating every telemetry record as an independent event.
+
+---
+
+# Machine Learning Risk Scoring
+
+IncidentForge includes a machine-learning pipeline based on the **TON_IoT Network Dataset**.
+
+The current baseline workflow is:
+
+```text
+TON_IoT Network Dataset
+        ↓
+Feature Extraction
+        ↓
+25 Network-Derived Features
+        ↓
+Stratified Train/Test Split
+        ↓
+StandardScaler
+        ↓
+Logistic Regression
+        ↓
+Risk Scoring
+```
+
+## Baseline Evaluation
+
+| Metric    | Result |
+| --------- | -----: |
+| Precision | 0.9728 |
+| Recall    | 0.9450 |
+| F1        | 0.9587 |
+| ROC-AUC   | 0.9843 |
+| PR-AUC    | 0.9943 |
+
+These results describe the current baseline evaluation configuration and should be interpreted within the documented dataset, preprocessing, split, and evaluation methodology.
+
+The ML component provides an additional risk signal; it is not intended to replace the broader detection, correlation, and analyst investigation workflow.
+
+---
+
+# Explainability & Provenance
+
+IncidentForge is designed around traceable system outputs.
+
+Important values should have an understandable origin.
+
+## Incident Counts
+
+```text
+Incident Count
+      ↓
+Dataset
+      ↓
+Normalization
+      ↓
+Detection
+      ↓
+Correlation
+      ↓
+Incident Records
+```
+
+## ML Risk
+
+```text
+Risk Score
+      ↓
+Extracted Features
+      ↓
+Preprocessing
+      ↓
+Model
+      ↓
+Prediction
+```
+
+## Investigation Recommendations
+
+```text
+Recommendation
+      ↓
+Current Evidence
+      +
+Historical Memory
+      ↓
+AI Investigator
+```
+
+This allows system behavior to be investigated rather than treating the dashboard as a collection of unexplained numbers.
+
+---
+
+# Responsible AI
+
+IncidentForge is designed around analyst-controlled security operations.
+
+The AI layer is intended to:
+
+* Investigate
+* Summarize
+* Correlate
+* Explain
+* Surface historical context
+* Recommend next steps
+
+The analyst remains responsible for consequential decisions.
+
+```text
+                 AI
+                  │
+       ┌──────────┼──────────┐
+       │          │          │
+   Investigate  Explain  Recommend
+       │          │          │
+       └──────────┼──────────┘
+                  ▼
+            HUMAN ANALYST
+                  │
+                  ▼
+              DECISION
+```
+
+The core principle is:
+
+> **AI investigates. Memory informs. Humans decide.**
+
+---
+
+# Response Governance
+
+IncidentForge emphasizes controlled response rather than unrestricted autonomous execution.
+
+The architecture incorporates:
+
+* Analyst approval
+* Advisory AI
+* Simulation-oriented response
+* Allowlisted actions
+* Audit events
+* Non-destructive execution boundaries
+
+This allows the investigation system to provide actionable recommendations while preserving human control over operational response.
+
+---
+
+# Memory Integrity
+
+Organizational memory becomes valuable only when it remains trustworthy.
+
+IncidentForge therefore treats validated investigation outcomes as the basis for retained knowledge.
+
+```text
+Current Evidence
+      ↓
+Investigation
+      ↓
+AI Analysis
+      ↓
+Analyst Review
+      ↓
+Validated Resolution
+      ↓
+Lessons Learned
+      ↓
+Organizational Memory
+```
+
+The investigator should not automatically convert unsupported speculation into trusted organizational knowledge.
+
+Memory is intended to represent **validated operational experience**, not simply generated text.
+
+---
+
+# Failure Handling
+
+Security systems must remain understandable when individual components fail.
+
+IncidentForge accounts for failure conditions including:
+
+* Hindsight unavailable
+* Hindsight timeout
+* Invalid datasets
+* Unsupported schemas
+* Empty datasets
+* Malformed records
+* Duplicate uploads
+* Empty memory recall
+* LLM unavailable
+* Model unavailable
+* No detections
+
+For example:
+
+```text
+Hindsight Service
+      │
+      X
+      │
+      ▼
+Memory Unavailable
+      │
+      ▼
+Investigation Continues
+      │
+      ▼
+Memory Status: DEGRADED
+```
+
+The memory layer is intended to enhance the security workflow without becoming a single point of failure for the entire investigation platform.
+
+---
+
+# Architecture
+
+```text
+                         SECURITY DATA
+                              │
+                              ▼
+                    ┌──────────────────┐
+                    │ Data Processing   │
+                    │ & Normalization   │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │    Detection     │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │   Correlation    │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │    Incident      │
+                    └────────┬─────────┘
+                             │
+                  ┌──────────┴──────────┐
+                  │                     │
+                  ▼                     ▼
+           ┌─────────────┐       ┌─────────────┐
+           │ ML Risk      │       │  Hindsight  │
+           │ Scoring      │       │   Recall    │
+           └──────┬──────┘       └──────┬──────┘
+                  │                     │
+                  └──────────┬──────────┘
+                             ▼
+                    ┌──────────────────┐
+                    │ AI Investigator  │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │ Analyst Review   │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │    Resolution    │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │ Hindsight Retain │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ORGANIZATIONAL MEMORY
+                             │
+                             └─────────────►
+                                  FUTURE
+                                INCIDENTS
+```
+
+---
+
+# Project Structure
+
+```text
+IncidentForge-2.0/
+│
+├── backend/
+├── dashboard/
+│
+├── datasets/
+│   └── public/
+│       └── TON_IoT/
+│
+├── ai-investigator/
+├── detection/
+├── correlation/
+├── pipeline/
+├── response-engine/
+├── ml/
+│
+├── docs/
+│   ├── architecture.md
+│   ├── hindsight.md
+│   ├── memory-model.md
+│   ├── demo.md
+│   ├── dataset-pipeline.md
+│   └── evaluation.md
+│
+├── tests/
+│
+├── .env.example
+├── pyproject.toml
+└── README.md
+```
+
+The project is organized around distinct responsibilities including:
+
+* Data processing
+* Detection
+* Correlation
+* Machine learning
+* AI investigation
+* Organizational memory
+* Response governance
+* Testing
+* Documentation
+
+---
+
+# Core Investigation Workflow
+
+The complete IncidentForge workflow is:
+
+```text
+01  Upload Security Data
+          ↓
+02  Detect & Normalize Schema
+          ↓
+03  Generate Security Events
+          ↓
+04  Detect Suspicious Activity
+          ↓
+05  Correlate Related Events
+          ↓
+06  Create Security Incident
+          ↓
+07  Calculate ML Risk
+          ↓
+08  Recall Historical Experience
+          ↓
+09  Investigate With AI
+          ↓
+10  Review Evidence & Context
+          ↓
+11  Analyst Decision
+          ↓
+12  Resolve Incident
+          ↓
+13  Retain Validated Learning
+          ↓
+14  Improve Future Investigations
+```
+
+---
+
+# A Security System With Memory
+
+The difference can be represented simply.
+
+### Conventional workflow
+
+```text
+Incident
+   ↓
+Investigation
+   ↓
+Resolution
+   ↓
+Next Incident
+   ↓
+Investigation
+```
+
+### IncidentForge workflow
+
+```text
+Incident
+   ↓
+Investigation
+   ↓
+Resolution
+   ↓
+Learning
+   ↓
+Organizational Memory
+   ↓
+Next Incident
+   ↓
+Historical Recall
+   ↓
+Contextual Investigation
+   ↓
+Resolution
+   ↓
+New Learning
+```
+
+The system creates a feedback loop between **what the organization has experienced** and **what it investigates next**.
+
+---
+
+# Design Principles
+
+## Evidence First
+
+Current security evidence remains the foundation of every investigation.
+
+## Memory With Purpose
+
+The memory layer focuses on useful investigation experience rather than indiscriminately storing raw data.
+
+## Explainable Context
+
+Historical information and current evidence remain distinguishable.
+
+## Human Control
+
+AI provides analysis and recommendations while analysts remain responsible for consequential decisions.
+
+## Graceful Degradation
+
+Failure of an optional service should not unnecessarily break the complete investigation workflow.
+
+## Reproducibility
+
+Data processing, model evaluation, and system behavior should be reproducible from documented workflows.
+
+## Continuous Learning
+
+Resolved incidents can contribute to future organizational knowledge.
+
+---
+
+# Documentation
+
+Detailed technical documentation is organized under `docs/`.
+
+### Architecture
+
+`docs/architecture.md`
+
+System components, boundaries, and data flow.
+
+### Hindsight
+
+`docs/hindsight.md`
+
+Memory architecture, recall, retention, and integration.
+
+### Memory Model
+
+`docs/memory-model.md`
+
+What constitutes organizational knowledge and how investigation experience is represented.
+
+### Dataset Pipeline
+
+`docs/dataset-pipeline.md`
+
+Dataset ingestion, normalization, processing, and event generation.
+
+### Demo
+
+`docs/demo.md`
+
+End-to-end workflow for running the system.
+
+### Evaluation
+
+`docs/evaluation.md`
+
+Machine-learning and system evaluation methodology.
+
+---
+
+# Quick Start
+
+## Clone the repository
 
 ```bash
-# Clone the repository
-git clone https://github.com/hasinivinnakota/IncidentForge.git
-cd IncidentForge
-
-# Create and activate virtual environment
-python -m venv .venv
-# On Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-# On Linux / macOS:
-# source .venv/bin/activate
-
-# Install backend dependencies via pyproject.toml
-pip install -e ".[test]"
-
-# Execute the complete automated test suite
-pytest -q
+git clone https://github.com/hasinivinnakota/IncidentForge-2.0.git
+cd IncidentForge-2.0
 ```
 
-### 2. Frontend Setup
+## Configure the environment
 
 ```bash
-cd dashboard
-
-# Install frontend dependencies
-pnpm install
-
-# Verify production build compilation
-pnpm run build
+cp .env.example .env
 ```
 
-### 3. Running Locally
+Configure the required services and credentials according to the project documentation.
 
-Start the backend API server:
+## Install dependencies
+
 ```bash
-# From repository root:
-.venv\Scripts\python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+pip install -e .
 ```
 
-Start the Next.js development server:
+## Run the application
+
+Use the documented application startup command for the current project configuration.
+
+## Run tests
+
 ```bash
-# From dashboard/ directory:
-cd dashboard
-pnpm run dev --port 3000
+pytest
 ```
 
-Access the operations console in your browser at **`http://localhost:3000`**. The dashboard will display `API ONLINE` upon establishing connectivity with `http://127.0.0.1:8000`.
+---
+
+# Development
+
+IncidentForge is structured so that individual subsystems can be developed and tested independently.
+
+Typical development areas include:
+
+```text
+Data Ingestion
+     │
+     ├── Schema Detection
+     └── Normalization
+
+Detection
+     │
+     ├── Rules
+     └── Event Analysis
+
+Correlation
+     │
+     └── Incident Construction
+
+ML
+     │
+     ├── Feature Engineering
+     ├── Training
+     └── Risk Scoring
+
+AI Investigation
+     │
+     ├── Evidence
+     ├── Historical Context
+     └── Recommendations
+
+Hindsight
+     │
+     ├── Retain
+     ├── Recall
+     └── Organizational Memory
+
+Response
+     │
+     ├── Governance
+     ├── Approval
+     └── Audit
+```
 
 ---
 
-## Configuration
+# Current Capabilities
 
-IncidentForge utilizes environment variables for operational configuration:
+IncidentForge brings together:
 
-| Variable | Default Value | Description |
-|---|---|---|
-| `INCIDENTFORGE_API_PORT` | `8000` | Port for the FastAPI backend server |
-| `INCIDENTFORGE_LOG_LEVEL` | `INFO` | Application logging verbosity (`DEBUG`, `INFO`, `WARNING`) |
-| `INCIDENTFORGE_DATABASE_URL` | `sqlite:///backend/data/incidentforge.db` | Database connection string |
-| `INCIDENTFORGE_CORS_ORIGINS` | `http://localhost:3000,http://127.0.0.1:3000` | Comma-delimited allowlisted CORS origins |
-| `NEXT_PUBLIC_API_BASE_URL` | `http://127.0.0.1:8000` | Frontend backend API base endpoint URL |
-
----
-
-## Limitations
-
-- **Synthetic Baseline ML:** The machine learning risk model is trained and evaluated on synthetic development datasets. It demonstrates explainable prioritization mechanics rather than real-world predictive accuracy.
-- **Simulation Sandbox:** All response actions are strictly simulated to preserve absolute host safety; live network or operating system state is never altered.
-- **SIEM Bulk Ingestion Limitation:** Live continuous indexing into Wazuh Indexer is restricted by the upstream Filebeat 7.10.2 / OpenSearch 2.13 `_type` incompatibility. IncidentForge operates via direct adapter consumption to ensure non-blocking ingestion.
-- **Controlled Local Lab Scope:** Infrastructure is scoped for local engineering development and forensic research rather than multi-tenant enterprise deployment.
-- **Advisory AI:** AI investigation outputs are designed as decision support tools and do not execute automated system containment.
-
----
-
-## Roadmap
-
-Future engineering directions planned for the platform include:
-- **Expanded Detection Engineering:** Community Sigma rule parser integration and additional MITRE ATT&CK coverage rules.
-- **Advanced Telemetry Connectors:** Live syslog listeners, Zeek network telemetry adapters, and cloud audit trail ingestion.
-- **Enterprise Persistence:** Migration path from SQLite to PostgreSQL with Alembic database schema migrations.
-- **Model Evolution:** Supervised and anomaly-based risk models evaluated against public security benchmarks (e.g., CIC-IDS).
-- **External Ticketing Integrations:** Bidirectional webhooks for Jira, TheHive, and ServiceNow case synchronization.
-- **Extended Response Playbooks:** Pluggable response adapters supporting real containment execution in dedicated, disposable hypervisor sandboxes.
+* Security dataset ingestion
+* Schema detection
+* Data normalization
+* Event generation
+* Detection engineering
+* Event correlation
+* Incident creation
+* ML-based risk scoring
+* AI-assisted investigation
+* Hindsight-based historical recall
+* Organizational memory
+* Memory-aware recommendations
+* Evidence-aware investigation
+* Analyst-controlled response
+* Response governance
+* Auditability
+* Failure handling
+* Automated testing
+* Technical documentation
 
 ---
 
-## License
+# Future Direction
 
-This project is released under the terms of the MIT License for educational, research, and defensive portfolio demonstration purposes.
+IncidentForge's architecture provides a foundation for progressively richer organizational security intelligence.
+
+Potential future directions include:
+
+* More sophisticated incident memory representations
+* Improved memory validation
+* Richer historical investigation traces
+* Expanded dataset adapters
+* Additional detection strategies
+* More detailed analyst feedback loops
+* Improved investigation explainability
+* Broader security telemetry integrations
+* Continuous evaluation of memory usefulness
+* Stronger measurement of investigation efficiency and quality
+
+The long-term objective is not simply to build a smarter alert dashboard.
+
+It is to build a security system that can **accumulate, preserve, and reuse organizational experience.**
+
+---
+
+# Philosophy
+
+Security teams continuously learn.
+
+Every investigation produces information about:
+
+* attacker behavior,
+* infrastructure,
+* detection patterns,
+* investigation techniques,
+* root causes,
+* remediation,
+* mistakes,
+* successful decisions,
+* and lessons worth remembering.
+
+That knowledge should not disappear when an incident is closed.
+
+IncidentForge turns the incident lifecycle into a learning lifecycle:
+
+```text
+             ┌─────────────────────────┐
+             │      SECURITY DATA      │
+             └────────────┬────────────┘
+                          ▼
+                     DETECTION
+                          ▼
+                    INVESTIGATION
+                          ▼
+                     RESOLUTION
+                          ▼
+                   LESSONS LEARNED
+                          ▼
+                 ORGANIZATIONAL MEMORY
+                          │
+                          │
+                          ▼
+                  FUTURE INCIDENT
+                          │
+                          ▼
+                    HINDSIGHT RECALL
+                          │
+                          ▼
+                  BETTER CONTEXT
+                          │
+                          ▼
+                    INVESTIGATION
+                          │
+                          └───────────────┐
+                                          │
+                                          ▼
+                                   NEW KNOWLEDGE
+```
+
+# IncidentForge 2.0
+
+## **Security Operations That Learn From Experience.**
+
+**Detect. Recall. Investigate. Resolve. Learn.**
+
